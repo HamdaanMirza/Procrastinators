@@ -1,6 +1,6 @@
 Creation of database:
 	-CREATE database procrastinators;
-	-USE procrastinators
+	-USE procrastinators;
 
 Creation of tables:
 
