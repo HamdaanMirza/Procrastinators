@@ -1,0 +1,147 @@
+body {
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-image: url("../img/backs.jpg");
+    background-position: center;
+    background-repeat: repeat;
+    text-align: center;
+    color:black;
+}
+
+header {
+    background-color: #3B945E;
+    padding: 0px;
+    text-align: left;
+    display: flex;
+    align-items: center;
+}
+
+.logo {
+    width: 100px;
+    margin-right: 20px;
+}
+
+h1 {
+    font-size: 60px;
+    color: #182628;
+}
+
+nav {
+    background: #3B945E;
+    padding: 10px;
+}
+
+nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+nav ul li {
+    display: inline;
+    margin: 0 15px;
+}
+
+nav ul li a {
+    color: #182628;
+    text-decoration: none;
+    font-size: 28px;
+}
+
+nav ul li a:hover {
+    color: #d7ce1d;
+}
+
+.searchbar {
+    margin: 20px auto;
+    text-align: center;
+}
+
+.searchbar input {
+    width: 60%;
+    padding: 10px;
+    font-size: 18px;
+}
+
+.searchbar button {
+    padding: 10px;
+    font-size: 18px;
+    background: #3B945E;
+    color: #182628;
+    border: none;
+    cursor: pointer;
+}
+
+
+.filters {
+    margin: 20px auto;
+    text-align: center;
+}
+
+.filters label {
+    font-size: 18px;
+    margin-right: 10px;
+}
+
+.filters select {
+    padding: 10px;
+    font-size: 18px;
+    margin-right: 20px;
+}
+
+.products {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    padding: 20px;
+}
+
+.product {
+    background: #3B945E;
+    color: #182628;
+    width: 250px;
+    margin: 15px;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+    text-align: center;
+}
+
+.product img {
+    width: 100%;
+    border-radius: 5px;
+}
+
+.product h3 {
+    font-size: 20px;
+    margin: 10px 0;
+}
+
+.product p {
+    font-size: 18px;
+    color: #d7ce1d;
+    font-weight: bold;
+}
+
+.product .wishlist, .product .cart {
+    background: yellow;
+    color: white;
+    border: none;
+    padding: 10px;
+    margin: 5px;
+    font-size: 18px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+.product .wishlist:hover {
+    background: none;
+    border: 2px solid yellow;
+}
+
+.product .cart:hover {
+    background: none;
+    border: 2px solid yellow;
+}
+

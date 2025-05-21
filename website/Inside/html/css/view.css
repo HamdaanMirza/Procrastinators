@@ -1,0 +1,181 @@
+body {
+    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-image: url("../img/backs.png");
+    background-position: center;
+    background-repeat: repeat;
+    text-align: center;
+    color: black;
+}
+
+header {
+    background-color: #3B945E;
+    padding: 0px;
+    text-align: left;
+    display: flex;
+    align-items: center;
+}
+
+.logo {
+    width: 100px;
+    margin-right: 20px;
+}
+
+h1 {
+    font-size: 60px;
+    color: #182628;
+}
+
+nav {
+    background: #3B945E;
+    padding: 10px;
+}
+
+nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+nav ul li {
+    display: inline;
+    margin: 0 15px;
+}
+
+nav ul li a {
+    color: #182628;
+    text-decoration: none;
+    font-size: 28px;
+}
+
+nav ul li a:hover {
+    color: #d7ce1d;
+}
+
+.content-box {
+    background-color: #3B945E;
+    padding: 30px;
+    margin: 20px auto;
+    width: 80%;
+    border-radius: 10px;
+}
+
+.product-view {
+    color: #182628;
+    text-align: center;
+}
+
+h2 {
+    text-align: center;
+    color: #182628;
+    font-size: 50px;
+}
+
+.carousel {
+    position: relative;
+    width: 50%;
+    margin: auto;
+    margin-bottom: 20px;
+}
+
+.carousel img {
+    width: 100%;
+    height: auto;
+    border-radius: 10px;
+}
+
+.carousel-controls {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    transform: translateY(-50%);
+}
+
+.carousel button {
+    background-color:black;
+    color: white;
+    border: none;
+    padding: 10px;
+    cursor: pointer;
+    font-size: 18px;
+    border-radius: 5px;
+}
+
+.carousel button:hover {
+    background-color: gray;
+}
+
+h3{
+    font-size: 30px;
+}
+.product-details {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+    margin-left: 10%;
+}
+
+.details-left, .details-right {
+    width: 50%;
+    text-align: left;
+}
+
+.details-left h3, .details-right h3 {
+    color: #d7ce1d;
+    margin-bottom: 15px;
+}
+
+.details-left p, .details-right p {
+    font-size: 18px;
+    color: #182628;
+}
+
+.description {
+    margin-top: 30px;
+    text-align: left;
+    width: 80%;
+    margin: auto;
+}
+
+.description h3 {
+    color: #d7ce1d;
+    margin-bottom: 15px;
+}
+
+.description p {
+    font-size: 18px;
+    color: #182628;
+    line-height: 1.6;
+}
+
+
+.rating {
+  display: inline-block;
+}
+
+.rating input {
+  display: none;
+}
+
+.rating label {
+  float: right;
+  cursor: pointer;
+  color: #ccc;
+  transition: color 0.3s;
+}
+
+.rating label:before {
+  content: '\2605';
+  font-size: 30px;
+}
+
+.rating input:checked ~ label,
+.rating label:hover,
+.rating label:hover ~ label {
+  color: #d7ce1d;
+  transition: color 0.3s;
+}
