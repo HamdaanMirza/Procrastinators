@@ -1,0 +1,559 @@
+<?php
+header("Content-Type: application/json");
+require_once("config.php");
+
+class API{
+    private static $obj = null;
+    private $connection;
+
+    private function __construct(){
+        $this->connection = getDBConnection();
+            if($this->connection->connect_error)
+                $this->sendErrorResponse("Database connection failed", 500);
+    }
+
+    public static function getInstance(){
+        if(self::$obj == null)
+            self::$obj = new API();
+        return self::$obj;
+    }
+
+    public function handleRequest(){
+        $data = json_decode(file_get_contents("php://input"), true);
+        if($data)
+            $this->sendErrorResponse("No data was received.", 400);
+        if(!isset($data["type"]))
+            $this->sendErrorResponse("Request type not specified.", 400);
+        switch($data["type"]){
+            case "Register":
+                $this->handelRegistration($data);
+                break;
+            case "AddRetailer":
+                $this->handelAddRetailer($data);
+                break;
+            case "UpdateRetailer":
+                $this->handelUpdateRetailer($data);
+                break;
+            case "DeleteRetailer":
+                $this->handelDeleteRetailer($data);
+                break;
+            case 'loginUser':
+                $this->handleLogin();
+                break;
+            case 'deleteUser':
+                $this->handleDeleteUser();
+                break;
+            case 'insertReview':
+                $this->handleInsertReview();
+                break;
+            case 'addProduct':
+                $this->handleAddProduct();
+                break;
+            case 'editProduct':
+                $this->handleEditProduct();
+                break;
+            case 'deleteProduct':
+                $this->handleDeleteProduct();
+                break;
+            default:
+                $this->sendErrorResponse("Endpoint not found", 404);
+                break;
+        }
+    }
+
+    // registering users
+    private function handelRegistration($data){
+        //making sure we have all needed fields
+        $required = ["username", "email", "password", "role"];
+        foreach($required as $field)
+            if(empty($data[$field]))
+                $this->sendErrorResponse("$field is required.", 400);
+        //validating email using regex
+        $emailRegex = "/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/"; // got from mailtrap.io
+        if(!preg_match($emailRegex, $data["email"]))
+            $this->sendErrorResponse("Invaild email address.", 400);
+        //password validation
+        $check1 = strlen($data["password"]) < 8;
+        $check2 = !preg_match("/[A-Z]/", $data["password"]);
+        $check3 = !preg_match("/[a-z]/", $data["password"]);
+        $check4 = !preg_match("/[0-9]/", $data["password"]);
+        $check5 = !preg_match("/[^A-Za-z0-9]/", $data["password"]);
+        if($check1 || $check2 || $check3 || $check4 || $check5)
+            $this->sendErrorResponse("Password must be at least 8 characters with uppercase, lowercase, number and special character", 400);
+        $vaildRoles = ["Customer", "Admin"];
+        if(!in_array($data["role"], $vaildRoles))
+            $this->sendErrorResponse("Invalid user role.", 400);
+
+        // checking if the email received is already in the table
+        $mysql_statement = $this->connection->prepare("SELECT UserID FROM Users WHERE Email = ?");
+        $mysql_statement->bind_param("s", $data["email"]);
+        $mysql_statement->execute();
+        $mysql_statement->store_result();
+        if($mysql_statement->num_rows > 0)
+            $this->sendErrorResponse("Email already registered", 400);
+        $mysql_statement->close();
+
+        //password hashing and api key generation
+        $salt = bin2hex(random_bytes(16)); 
+        $hashedPassword = hash("sha512", $data["password"] . $salt);
+        $apikey = bin2hex(random_bytes(16));
+
+        $mysql_statement = $this->connection->prepare("INSERT INTO Users (UserName, Email, Password, salt, Role, apikey)
+        VALUES (?, ?, ?, ?, ?, ?)");
+        $mysql_statement->bind_param("ssssss", $data["username"], $data["email"], $hashedPassword, $salt, $data["role"], $apikey);
+        if($mysql_statement->execute())
+            $this->sendSuccessResponse(["apikey"=>$apikey]);
+        else
+            $this->sendErrorResponse("Registration failed.", 500);
+        $mysql_statement->close();
+    }
+
+    // inserts a retailer into the database
+    private function handelAddRetailer($data){
+        //checks if the required fields are present
+        $required = ["RetailerName", "RetailerURL", "Country", "City", "Street"];
+        foreach($required as $field)
+            if(empty($data[$field]))
+                $this->sendErrorResponse("$field is required.", 400);
+        //checking for multiple retailers with same naem
+        $mysql_statement = $this->connection->prepare("SELECT RetailerID FROM Retailer WHERE RetailerName = ?");
+        $mysql_statement->bind_param("s", $data["RetailerName"]);
+        $mysql_statement->execute();
+        $mysql_statement->store_result();
+        if($mysql_statement->num_rows > 0)
+            $this->sendErrorResponse("Retailer already present in database", 400);
+        $mysql_statement = $this->connection->prepare("INSERT INTO Retailer (RetailerName, RetailerURL, Country, City, Street)
+        VALUES (?, ?, ?, ?, ?)");
+        // adding to the database
+        $mysql_statement->bind_param("ssssss", $data["RetailerName"], $data["RetailerURL"], $data["Country"], $data["City"], $data["Street"]);
+        $RetailerName = $data["RetailerName"];
+        if($mysql_statement->execute())
+            $this->sendSuccessResponse("Retailer $RetailerName was added successfully to the database.");
+        else
+            $this->sendErrorResponse("Failed to add retailer to the database.", 500);
+        $mysql_statement->close();
+    }
+
+    private function handelUpdateRetailer($data){
+        if(!isset($data["RetailerID"]))
+            $this->sendErrorResponse("RetailerID is required.", 400);
+        $retailerID = (int)$data["RetailerID"];
+        try {
+            //getting current data of the retailer from db
+            $query = $this->connection->prepare("SELECT * FROM Retailer WHERE RetailerID = ?");
+            $query->bind_param("i", $retailerID);
+            $query->execute();
+            $result = $query->get_result();
+            $currentData = $result->fetch_assoc();
+            
+            if($result->num_rows === 0)
+                $this->sendErrorResponse("No retailer found with the specified ID.", 404);
+            $updateFields = [];
+            $updateValues = [];
+            $types = "";
+
+            // Checking each field and updating it only if the attribute was provided
+            if(isset($data["RetailerName"])){
+                $updateFields[] = "RetailerName = ?";
+                $updateValues[] = trim($data["RetailerName"]);
+                $types .= "s";
+            }
+            else{
+                $updateValues[] = $currentData["RetailerName"];
+                $types .= "s";
+            }
+
+            if(isset($data["RetailerURL"])){
+                $updateFields[] = "RetailerURL = ?";
+                $updateValues[] = trim($data["RetailerURL"]);
+                $types .= "s";
+            }
+            else{
+                $updateValues[] = $currentData["RetailerURL"];
+                $types .= "s";
+            }
+
+            if(isset($data["Country"])){
+                $updateFields[] = "Country = ?";
+                $updateValues[] = trim($data["Country"]);
+                $types .= "s";
+            }
+            else{
+                $updateValues[] = $currentData["Country"];
+                $types .= "s";
+            }
+
+            if(isset($data["City"])) {
+                $updateFields[] = "City = ?";
+                $updateValues[] = trim($data["City"]);
+                $types .= "s";
+            }
+            else{
+                $updateValues[] = $currentData["City"];
+                $types .= "s";
+            }
+
+            if(isset($data["Street"])){
+                $updateFields[] = "Street = ?";
+                $updateValues[] = trim($data["Street"]);
+                $types .= "s";
+            }
+            else{
+                $updateValues[] = $currentData["Street"];
+                $types .= "s";
+            }
+            //updating the database
+            $updateValues[] = $retailerID;
+            $types .= "i";
+            $query = "UPDATE Retailer SET " . implode(", ", $updateFields) . " WHERE RetailerID = ?";
+            $query = $this->connection->prepare($query);
+            $query->bind_param($types, ...$updateValues); // i checked this is supported by php 7.4
+            $query->execute();
+            //no updates made
+            if($query->affected_rows === 0)
+                $this->sendErrorResponse("No changes were made to the retailer.", 200);
+            //successfully updated
+                $this->sendSuccessResponse([
+                "message" => "Retailer updated successfully.",
+                "retailer_id" => $retailerID,
+                "changes_made" => count($updateFields)
+            ]);
+        }
+        catch (Exception $e) {
+            $this->sendErrorResponse("Failed to update retailer: " . $e->getMessage(), 500);
+        }
+    }
+
+    private function handelDeleteRetailer($data){
+        if(!isset($data["RetailerID"]))
+            $this->sendErrorResponse("RetailerID is required.", 400);
+        $retailerID = (int)$data["RetailerID"];
+        try{
+            // checking if retailer exists before deleting 
+            $query = $this->connection->prepare("SELECT RetailerID FROM Retailer WHERE RetailerID = ?");
+            $query->bind_param("i", $retailerID);
+            $query->execute();
+            $result = $query->get_result();
+            if($result->num_rows === 0)
+                $this->sendErrorResponse("No retailer found with given ID.", 404);
+            //actually deleting the relevant retailer
+            $query = $this->connection->prepare("DELETE FROM Retailer WHERE RetailerID = ?");
+            $query->execute();
+            if($query->affected_rows === 0)
+                $this->sendErrorResponse("Failed to delete user.", 500);
+            $this->sendSuccessResponse([
+                "message" => "Retailer deleted successfully",
+                "RetailerID" => $retailerID
+            ]);
+        }
+        catch(Exception $e){
+            $this->sendErrorResponse("Failed to delete retailer: " . $e->getMessage(), 500);
+        }
+    }
+
+    private function handleLogin() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->sendErrorResponse("Method not allowed", 405);
+        }
+        
+        $data = json_decode(file_get_contents('php://input'), true);
+        
+        if (!isset($data['email']) || !isset($data['password'])) {
+            $this->sendErrorResponse("Email and password are required", 400);
+        }
+        
+        $email = $this->connection->real_escape_string($data['email']);
+        $query = "SELECT UserID, UserName, Email, Password, Role FROM User WHERE Email = '$email'";
+        $result = $this->connection->query($query);
+        
+        if ($result->num_rows === 0) {
+            $this->sendErrorResponse("User not found", 401);
+        }
+        
+        $user = $result->fetch_assoc();
+        
+        if (!password_verify($data['password'], $user['Password'])) {
+            $this->sendErrorResponse("Invalid credentials", 401);
+        }
+        
+        unset($user['Password']);
+        
+        $this->sendSuccessResponse([
+            'message' => 'Login successful',
+            'user' => $user
+        ]);
+    }
+
+    // =========== USER OPERATIONS ==========
+    private function handleDeleteUser() {
+        $userID = $_GET['id'] ?? null;
+        
+        if (!$userID) {
+            $data = json_decode(file_get_contents('php://input'), true);
+            $userID = $data['id'] ?? null;
+        }
+        
+        if (!$userID) {
+            $this->sendErrorResponse("User ID is required", 400);
+        }
+        
+        $this->connection->begin_transaction();
+        
+        try {
+            $userID = $this->connection->real_escape_string($userID);
+            $queryCheckRole = "SELECT Role FROM User WHERE UserID = '$userID'";
+            $roleResult = $this->connection->query($queryCheckRole);
+            
+            if ($roleResult->num_rows === 0) {
+                $this->connection->rollback();
+                $this->sendErrorResponse("User not found", 404);
+            }
+            
+            $user = $roleResult->fetch_assoc();
+            
+            if ($user['Role'] === 'customer') {
+                $queryDeleteCustomer = "DELETE FROM Customer WHERE UserID = '$userID'";
+                if (!$this->connection->query($queryDeleteCustomer)) 
+                    throw new Exception('Failed to delete customer record');
+            } else if ($user['Role'] === 'admin') {
+                $queryDeleteAdmin = "DELETE FROM Admin WHERE UserID = '$userID'";
+                if (!$this->connection->query($queryDeleteAdmin)) 
+                    throw new Exception('Failed to delete admin record');
+            }
+            
+            $queryDeleteUser = "DELETE FROM User WHERE UserID = '$userID'";
+            if (!$this->connection->query($queryDeleteUser)) 
+                throw new Exception('Failed to delete user record');
+            
+            $this->connection->commit();
+            
+            $this->sendSuccessResponse(['message' => 'User deleted successfully']);
+            
+        } catch (Exception $e) {
+            $this->connection->rollback();
+            $this->sendErrorResponse('Failed to delete user: ' . $e->getMessage(), 500);
+        }
+    }
+
+    // =========== REVIEW OPERATIONS ==========
+    private function handleInsertReview() {
+        $data = json_decode(file_get_contents('php://input'), true);
+        
+        if (!isset($data['productID']) || !isset($data['rating'])) {
+            $this->sendErrorResponse("Product ID and rating are required", 400);
+        }
+        
+        $userID = $data['userID'] ?? null;
+        $comment = $data['comment'] ?? null;
+        $currentDate = date('Y-m-d');
+        
+        if ($data['rating'] < 1 || $data['rating'] > 5) {
+            $this->sendErrorResponse("Rating must be between 1 and 5", 400);
+        }
+        
+        try {
+            $productID = $this->connection->real_escape_string($data['productID']);
+            $rating = $this->connection->real_escape_string($data['rating']);
+            $userID = $userID !== null ? $this->connection->real_escape_string($userID) : 'NULL';
+            $comment = $comment !== null ? "'" . $this->connection->real_escape_string($comment) . "'" : 'NULL';
+            
+            if ($userID !== 'NULL') 
+                $userID = "'$userID'";
+            
+            $query = "INSERT INTO Review (ProductID, UserID, Date, Rating, Comment) VALUES ('$productID', $userID, '$currentDate', '$rating', $comment)";
+            
+            if (!$this->connection->query($query)) 
+                throw new Exception($this->connection->error);
+            
+            $reviewID = $this->connection->insert_id;
+            
+            $this->sendSuccessResponse([
+                'message' => 'Review created successfully',
+                'reviewID' => $reviewID
+            ]);
+            
+        } catch (Exception $e) {
+            $this->sendErrorResponse('Failed to create review: ' . $e->getMessage(), 500);
+        }
+    }
+
+    // =========== PRODUCT OPERATIONS ==========
+    private function handleAddProduct() {
+        $data = json_decode(file_get_contents('php://input'), true);
+        
+        if (!isset($data['productName'])) {
+            $this->sendErrorResponse("Product name is required", 400);
+        }
+        
+        $brand = $data['brand'] ?? null;
+        $description = $data['description'] ?? null;
+        $imageURL = $data['imageURL'] ?? null;
+        $categories = $data['categories'] ?? [];
+        
+        $this->connection->begin_transaction();
+        
+        try {
+            $productName = $this->connection->real_escape_string($data['productName']);
+            $brand = $brand !== null ? "'" . $this->connection->real_escape_string($brand) . "'" : 'NULL';
+            $description = $description !== null ? "'" . $this->connection->real_escape_string($description) . "'" : 'NULL';
+            $imageURL = $imageURL !== null ? "'" . $this->connection->real_escape_string($imageURL) . "'" : 'NULL';
+            
+            $queryProduct = "INSERT INTO Product (ProductName, Brand, Description, ImageURL) VALUES ('$productName', $brand, $description, $imageURL)";
+            
+            if (!$this->connection->query($queryProduct)) 
+                throw new Exception($this->connection->error);
+            
+            $productID = $this->connection->insert_id;
+            
+            if (!empty($categories)) 
+                foreach ($categories as $categoryID) {
+                    $categoryID = $this->connection->real_escape_string($categoryID);
+                    $queryCategory = "INSERT INTO ProductCategory (ProductID, CategoryID) VALUES ('$productID', '$categoryID')";
+                    if (!$this->connection->query($queryCategory)) 
+                        throw new Exception($this->connection->error);
+                }
+            
+            $this->connection->commit();
+            
+            $this->sendSuccessResponse([
+                'message' => 'Product created successfully',
+                'productID' => $productID
+            ]);
+            
+        } catch (Exception $e) {
+            $this->connection->rollback();
+            $this->sendErrorResponse('Failed to create product: ' . $e->getMessage(), 500);
+        }
+    }
+
+    // Edit an existing product
+    private function handleEditProduct() {
+        $data = json_decode(file_get_contents('php://input'), true);
+        
+        if (!isset($data['productID'])) {
+            $this->sendErrorResponse("Product ID is required", 400);
+        }
+        
+        $this->connection->begin_transaction();
+        
+        try {
+            $productID = $this->connection->real_escape_string($data['productID']);
+            
+            $queryCheck = "SELECT ProductID FROM Product WHERE ProductID = '$productID'";
+            $result = $this->connection->query($queryCheck);
+            
+            if ($result->num_rows === 0) {
+                $this->connection->rollback();
+                $this->sendErrorResponse("Product not found", 404);
+            }
+            
+            $updateFields = [];
+            
+            if (isset($data['productName'])) {
+                $productName = $this->connection->real_escape_string($data['productName']);
+                $updateFields[] = "ProductName = '$productName'";
+            }
+            
+            if (isset($data['brand'])) {
+                $brand = $this->connection->real_escape_string($data['brand']);
+                $updateFields[] = "Brand = '$brand'";
+            }
+            
+            if (isset($data['description'])) {
+                $description = $this->connection->real_escape_string($data['description']);
+                $updateFields[] = "Description = '$description'";
+            }
+            
+            if (isset($data['imageURL'])) {
+                $imageURL = $this->connection->real_escape_string($data['imageURL']);
+                $updateFields[] = "ImageURL = '$imageURL'";
+            }
+            
+            if (!empty($updateFields)) {
+                $queryUpdate = "UPDATE Product SET " . implode(', ', $updateFields) . " WHERE ProductID = '$productID'";
+                
+                if (!$this->connection->query($queryUpdate)) 
+                    throw new Exception($this->connection->error);
+            }
+            
+            if (isset($data['categories'])) {
+                $queryDeleteCategories = "DELETE FROM ProductCategory WHERE ProductID = '$productID'";
+                
+                if (!$this->connection->query($queryDeleteCategories)) 
+                    throw new Exception($this->connection->error);
+                
+                foreach ($data['categories'] as $categoryID) {
+                    $categoryID = $this->connection->real_escape_string($categoryID);
+                    $queryInsertCategory = "INSERT INTO ProductCategory (ProductID, CategoryID) VALUES ('$productID', '$categoryID')";
+                    if (!$this->connection->query($queryInsertCategory)) 
+                        throw new Exception($this->connection->error);
+                }
+            }
+            
+            $this->connection->commit();
+            
+            $this->sendSuccessResponse(['message' => 'Product updated successfully']);
+            
+        } catch (Exception $e) {
+            $this->connection->rollback();
+            $this->sendErrorResponse('Failed to update product: ' . $e->getMessage(), 500);
+        }
+    }
+
+    private function handleDeleteProduct() {
+        $productID = $_GET['id'] ?? null;
+        
+        if (!$productID) {
+            $data = json_decode(file_get_contents('php://input'), true);
+            $productID = $data['id'] ?? null;
+        }
+        
+        if (!$productID) {
+            $this->sendErrorResponse("Product ID is required", 400);
+        }
+        
+        try {
+            $productID = $this->connection->real_escape_string($productID);
+            
+            $queryCheck = "SELECT ProductID FROM Product WHERE ProductID = '$productID'";
+            $result = $this->connection->query($queryCheck);
+            
+            if ($result->num_rows === 0) {
+                $this->sendErrorResponse("Product not found", 404);
+            }
+            
+            $queryDelete = "DELETE FROM Product WHERE ProductID = '$productID'";
+            
+            if (!$this->connection->query($queryDelete)) 
+                throw new Exception($this->connection->error);
+            
+            $this->sendSuccessResponse(['message' => 'Product deleted successfully']);
+            
+        } catch (Exception $e) {
+            $this->sendErrorResponse('Failed to delete product: ' . $e->getMessage(), 500);
+        }
+    }
+
+    private function sendSuccessResponse($data){
+        echo json_encode([
+            "status" => "success",
+            "timestamp" => time(),
+            "data" => $data
+        ]);
+        exit;
+    }
+
+    private function sendErrorResponse($message, $httpCode = 400){
+        http_response_code($httpCode);
+        echo json_encode([
+            "status" => "error",
+            "timestamp" => time(),
+            "data" => $message
+        ]);
+        exit;
+    }
+}
+
+$api = API::getInstance();
+$api->handleRequest();
+?>
