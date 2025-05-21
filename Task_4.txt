@@ -63,7 +63,7 @@ CREATE TABLE Review (
     Comment TEXT,
     FOREIGN KEY (ProductID) REFERENCES Product(ProductID)
         ON DELETE CASCADE ON UPDATE CASCADE,
-    FOREIGN KEY (UserID) REFERENCES User(UserID)
+    FOREIGN KEY (UserID) REFERENCES Customer(UserID)
         ON DELETE SET NULL ON UPDATE CASCADE
 );
 //UserID in review can be null, such that even if a user is deleted the review still remains
