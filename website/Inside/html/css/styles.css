@@ -11,45 +11,47 @@ body {
 
 header {
     background-color: #3B945E;
-    padding: 0px;
-    text-align: left;
+    padding: 10px;
+    text-align: center;
     display: flex;
     align-items: center;
+    justify-content: space-between;
 }
 
 .logo {
     width: 100px;
-    margin-right: 20px;
+    margin-right: 0px;
+    padding-left: 20px;
 }
 
 h1 {
-    font-size: 60px;
+    font-size: 40px;
     color: #182628;
+    padding-right: 500px;
 }
 
-nav {
-    background: #3B945E;
+
+header ul {
+    list-style: none;
+    padding-right: 50px;
+    margin: 0;
+    text-align: right;
+
+}
+
+header ul li {
+    display: inline;
+    margin: 0 15px;
     padding: 10px;
 }
 
-nav ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-nav ul li {
-    display: inline;
-    margin: 0 15px;
-}
-
-nav ul li a {
-    color: #182628;
+header ul li a {
+    color: #afaeae;
     text-decoration: none;
     font-size: 28px;
 }
 
-nav ul li a:hover {
+header ul li a:hover {
     color: #d7ce1d;
 }
 
@@ -85,9 +87,10 @@ nav ul li a:hover {
 }
 
 .filters select {
-    padding: 10px;
+    padding: 5px;
     font-size: 18px;
     margin-right: 20px;
+    border-radius: 10px;
 }
 
 .products {
@@ -104,8 +107,20 @@ nav ul li a:hover {
     margin: 15px;
     padding: 20px;
     border-radius: 10px;
-    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.0);
     text-align: center;
+}
+
+.filter-box {
+    background: #3B945E;
+    color: #182628;
+    width: 64.5%;
+    margin: 10px;
+    margin-left: 17.5%;
+    padding: 5px;
+    border-radius: 10px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.0);
+    text-align: center; 
 }
 
 .product img {
