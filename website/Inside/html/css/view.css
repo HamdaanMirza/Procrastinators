@@ -2,49 +2,51 @@ body {
     font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
     margin: 0;
     padding: 0;
-    background-image: url("../img/backs.png");
+    background-image: url("../img/backs.jpg");
     background-position: center;
     background-repeat: repeat;
     text-align: center;
-    color: black;
+    color:black;
 }
 
 header {
     background-color: #3B945E;
-    padding: 0px;
-    text-align: left;
+    padding: 10px;
+    text-align: center;
     display: flex;
     align-items: center;
+    justify-content: space-between;
 }
 
 .logo {
     width: 100px;
-    margin-right: 20px;
+    margin-right: 0px;
+    padding-left: 20px;
 }
 
 h1 {
-    font-size: 60px;
+    font-size: 40px;
     color: #182628;
+    padding-right: 500px;
 }
 
-nav {
-    background: #3B945E;
+
+header ul {
+    list-style: none;
+    padding-right: 50px;
+    margin: 0;
+    text-align: right;
+
+}
+
+header ul li {
+    display: inline;
+    margin: 0 15px;
     padding: 10px;
 }
 
-nav ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-nav ul li {
-    display: inline;
-    margin: 0 15px;
-}
-
-nav ul li a {
-    color: #182628;
+header ul li a {
+    color: #afaeae;
     text-decoration: none;
     font-size: 28px;
 }
