@@ -55,6 +55,18 @@ class API{
             case 'deleteProduct':
                 $this->handleDeleteProduct();
                 break;
+            case 'GetTopRated':
+                $this->handleGetTopRated();
+                break;
+            case 'GetAverageRating':
+                $this->handleGetAverageRating($data);
+                break;
+            case 'deleteProduct':
+                $this->handleSortProducts($data);
+                break;
+            case 'deleteProduct':
+                $this->handleFilterProducts($data);
+                break;
             default:
                 $this->sendErrorResponse("Endpoint not found", 404);
                 break;
@@ -532,6 +544,102 @@ class API{
         } catch (Exception $e) {
             $this->sendErrorResponse('Failed to delete product: ' . $e->getMessage(), 500);
         }
+    }
+
+    private function handleGetTopRated() {
+        $sql = "
+            SELECT P.ProductID, P.ProductName, P.Brand, P.Description, P.ImageURL, AVG(R.Rating) AS AverageRating
+            FROM Product P
+            JOIN Review R ON P.ProductID = R.ProductID
+            GROUP BY P.ProductID
+            ORDER BY AverageRating DESC
+            LIMIT 10
+        ";
+        $stmt = $this->connection->prepare($sql);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $this->sendSuccessResponse($result->fetch_all(MYSQLI_ASSOC));
+    }
+
+    private function handleGetAverageRating($data) {
+        if(!isset($data["ProductID"]))
+            $this->sendErrorResponse("ProductID is required.", 400);
+        $productID = (int)$data["ProductID"];
+        $sql = "
+            SELECT AVG(Rating) AS AverageRating 
+            FROM Review 
+            WHERE ProductID = ?
+        ";
+        $stmt = $this->connection->prepare($sql);
+        $stmt->bind_param("i", $productID);
+        $stmt->execute();
+        $result = $stmt->get_result()->fetch_assoc();
+        $avg = $result ? floatval($result['AverageRating']) : null;
+        $this->sendSuccessResponse($avg);
+    }
+
+    private function handleSortProducts($data) {
+        if(!isset($data["Criteria"]))
+            $this->sendErrorResponse("Sorting criteria is required.", 400);
+        $criteria = $data["Criteria"];
+        $sortOptions = [
+            'dateListed' => 'L.Date',
+            'averageRating' => 'AverageRating',
+            'price' => 'L.Price'
+        ];
+        if (!array_key_exists($criteria, $sortOptions)) {
+            $this->sendErrorResponse("Invalid sort criteria.", 400);
+        }
+        $col = $sortOptions[$criteria];
+        $sql = "
+            SELECT P.ProductID, P.ProductName, P.Brand, L.Date, L.Price, AVG(R.Rating) as AverageRating
+            FROM Product P
+            JOIN Listing L ON P.ProductID = L.ProductID
+            LEFT JOIN Review R ON P.ProductID = R.ProductID
+            GROUP BY P.ProductID, L.Date, L.Price
+            ORDER BY $col DESC
+        ";
+        $stmt = $this->connection->prepare($sql);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $this->sendSuccessResponse($result->fetch_all(MYSQLI_ASSOC));
+    }
+
+    private function handleFilterProducts($data) {
+        if(!isset($data["Criteria"]))
+            $this->sendErrorResponse("Filtering criteria is required.", 400);
+        if(!isset($data["Value"]))
+            $this->sendErrorResponse("Filtering value is required.", 400);
+        $criteria = $data["Criteria"];
+        $value = $data["Value"];
+        switch ($criteria) {
+            case 'Retailer':
+                $col = "R.RetailerName";
+                break;
+            case 'Brand':
+                $col = "P.Brand";
+                break;
+            case 'Category':
+                $col = "C.CategoryName";
+                break;
+            default:
+                $this->sendErrorResponse("Invalid filter criteria.", 400);
+        }
+
+        $sql = "
+            SELECT DISTINCT P.ProductID, P.ProductName, P.Brand, P.Description, P.ImageURL
+            FROM Product P
+            LEFT JOIN Listing L ON P.ProductID = L.ProductID
+            LEFT JOIN Retailer R ON L.RetailerID = R.RetailerID
+            LEFT JOIN ProductCategory PC ON P.ProductID = PC.ProductID
+            LEFT JOIN Category C ON PC.CategoryID = C.CategoryID
+            WHERE $col = ?
+        ";
+        $stmt = $this->connection->prepare($sql);
+        $stmt->bind_param("s", $value);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $this->sendSuccessResponse($result->fetch_all(MYSQLI_ASSOC));
     }
 
     private function sendSuccessResponse($data){
