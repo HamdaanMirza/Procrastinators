@@ -120,6 +120,7 @@ class API{
         $mysql_statement->close();
     }
 
+    //Retailer Operations
     // inserts a retailer into the database
     private function handelAddRetailer($data){
         //checks if the required fields are present
@@ -264,6 +265,7 @@ class API{
         }
     }
 
+    //User Operations
     private function handleLogin($data) {
         if (!isset($data['email']) || !isset($data['password'])) {
             $this->sendErrorResponse("Email and password are required", 400);
@@ -295,7 +297,6 @@ class API{
         ]);
     }
 
-    //User Operations
     private function handleDeleteUser($data) {
         $userID = $data['id'] ?? null;
         
@@ -422,7 +423,6 @@ class API{
         }
     }
 
-    // Edit an existing product
     private function handleEditProduct($data) {
         if (!isset($data['productID'])) {
             $this->sendErrorResponse("Product ID is required", 400);
@@ -538,12 +538,12 @@ class API{
 
     private function handleGetTopRated() {
         $sql = "
-            SELECT P.ProductID, P.ProductName, P.Brand, P.Description, P.ImageURL, AVG(R.Rating) AS AverageRating
-            FROM Product P
-            JOIN Review R ON P.ProductID = R.ProductID
-            GROUP BY P.ProductID
+            SELECT p.ProductID, p.ProductName, p.Brand, p.Description, p.ImageURL, AVG(r.Rating) AS AverageRating
+            FROM product p
+            JOIN review r ON p.ProductID = r.ProductID
+            GROUP BY p.ProductID
             ORDER BY AverageRating DESC
-            LIMIT 15
+            LIMIT 30
         ";
         $stmt = $this->connection->prepare($sql);
         $stmt->execute();
@@ -557,7 +557,7 @@ class API{
         $productID = (int)$data["ProductID"];
         $sql = "
             SELECT AVG(Rating) AS AverageRating 
-            FROM Review 
+            FROM review 
             WHERE ProductID = ?
         ";
         $stmt = $this->connection->prepare($sql);
@@ -582,11 +582,11 @@ class API{
         }
         $col = $sortOptions[$criteria];
         $sql = "
-            SELECT P.ProductID, P.ProductName, P.Brand, L.Date, L.Price, AVG(R.Rating) as AverageRating
-            FROM Product P
-            JOIN Listing L ON P.ProductID = L.ProductID
-            LEFT JOIN Review R ON P.ProductID = R.ProductID
-            GROUP BY P.ProductID, L.Date, L.Price
+            SELECT p.ProductID, p.ProductName, p.Brand, l.Date, l.Price, AVG(r.Rating) as AverageRating
+            FROM product p
+            JOIN listing l ON p.ProductID = l.ProductID
+            LEFT JOIN review r ON p.ProductID = r.ProductID
+            GROUP BY p.ProductID, l.Date, l.Price
             ORDER BY $col DESC
         ";
         $stmt = $this->connection->prepare($sql);
@@ -607,33 +607,32 @@ class API{
         switch ($criteria) {
             case 'Retailer':
                 $sql = "
-                    SELECT DISTINCT P.ProductID, P.ProductName, P.Brand, P.Description, P.ImageURL
-                    FROM Product P
-                    LEFT JOIN Listing L ON P.ProductID = L.ProductID
-                    LEFT JOIN Retailer R ON L.RetailerID = R.RetailerID
-                    WHERE R.RetailerName = ?
+                    SELECT DISTINCT p.ProductID, p.ProductName, p.Brand, p.Description, p.ImageURL
+                    FROM product p
+                    LEFT JOIN listing l ON p.ProductID = l.ProductID
+                    LEFT JOIN retailer r ON l.RetailerID = r.RetailerID
+                    WHERE r.RetailerName = ?
                 ";
                 break;
             case 'Brand':
                 $sql = "
-                    SELECT DISTINCT P.ProductID, P.ProductName, P.Brand, P.Description, P.ImageURL
-                    FROM Product P
-                    WHERE P.Brand = ?
+                    SELECT DISTINCT p.ProductID, p.ProductName, p.Brand, p.Description, p.ImageURL
+                    FROM product p
+                    WHERE p.Brand = ?
                 ";
                 break;
             case 'Category':
                 $sql = "
-                    SELECT DISTINCT P.ProductID, P.ProductName, P.Brand, P.Description, P.ImageURL
-                    FROM Product P
-                    LEFT JOIN ProductCategory PC ON P.ProductID = PC.ProductID
-                    LEFT JOIN Category C ON PC.CategoryID = C.CategoryID
-                    WHERE C.CategoryName = ?
+                    SELECT DISTINCT p.ProductID, p.ProductName, p.Brand, p.Description, p.ImageURL
+                    FROM product p
+                    LEFT JOIN productcategory pc ON p.ProductID = pc.ProductID
+                    LEFT JOIN category c ON pc.CategoryID = c.CategoryID
+                    WHERE c.CategoryName = ?
                 ";
                 break;
             default:
                 $this->sendErrorResponse("Invalid filter criteria.", 400);
         }
-
         $stmt = $this->connection->prepare($sql);
         $stmt->bind_param("s", $value);
         $stmt->execute();
