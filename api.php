@@ -20,7 +20,7 @@ class API{
 
     public function handleRequest(){
         $data = json_decode(file_get_contents("php://input"), true);
-        if($data)
+        if(!$data)
             $this->sendErrorResponse("No data was received.", 400);
         if(!isset($data["type"]))
             $this->sendErrorResponse("Request type not specified.", 400);
@@ -38,22 +38,22 @@ class API{
                 $this->handelDeleteRetailer($data);
                 break;
             case 'loginUser':
-                $this->handleLogin();
+                $this->handleLogin($data);
                 break;
             case 'deleteUser':
-                $this->handleDeleteUser();
+                $this->handleDeleteUser($data);
                 break;
             case 'insertReview':
-                $this->handleInsertReview();
+                $this->handleInsertReview($data);
                 break;
             case 'addProduct':
-                $this->handleAddProduct();
+                $this->handleAddProduct($data);
                 break;
             case 'editProduct':
-                $this->handleEditProduct();
+                $this->handleEditProduct($data);
                 break;
             case 'deleteProduct':
-                $this->handleDeleteProduct();
+                $this->handleDeleteProduct($data);
                 break;
             case 'GetTopRated':
                 $this->handleGetTopRated();
@@ -61,10 +61,10 @@ class API{
             case 'GetAverageRating':
                 $this->handleGetAverageRating($data);
                 break;
-            case 'deleteProduct':
+            case 'sortProducts':
                 $this->handleSortProducts($data);
                 break;
-            case 'deleteProduct':
+            case 'filterProducts':
                 $this->handleFilterProducts($data);
                 break;
             default:
@@ -137,7 +137,7 @@ class API{
         $mysql_statement = $this->connection->prepare("INSERT INTO Retailer (RetailerName, RetailerURL, Country, City, Street)
         VALUES (?, ?, ?, ?, ?)");
         // adding to the database
-        $mysql_statement->bind_param("ssssss", $data["RetailerName"], $data["RetailerURL"], $data["Country"], $data["City"], $data["Street"]);
+        $mysql_statement->bind_param("sssss", $data["RetailerName"], $data["RetailerURL"], $data["Country"], $data["City"], $data["Street"]);
         $RetailerName = $data["RetailerName"];
         if($mysql_statement->execute())
             $this->sendSuccessResponse("Retailer $RetailerName was added successfully to the database.");
@@ -250,6 +250,7 @@ class API{
                 $this->sendErrorResponse("No retailer found with given ID.", 404);
             //actually deleting the relevant retailer
             $query = $this->connection->prepare("DELETE FROM Retailer WHERE RetailerID = ?");
+            $query->bind_param("i", $retailerID);
             $query->execute();
             if($query->affected_rows === 0)
                 $this->sendErrorResponse("Failed to delete user.", 500);
@@ -263,20 +264,15 @@ class API{
         }
     }
 
-    private function handleLogin() {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->sendErrorResponse("Method not allowed", 405);
-        }
-        
-        $data = json_decode(file_get_contents('php://input'), true);
-        
+    private function handleLogin($data) {
         if (!isset($data['email']) || !isset($data['password'])) {
             $this->sendErrorResponse("Email and password are required", 400);
         }
         
-        $email = $this->connection->real_escape_string($data['email']);
-        $query = "SELECT UserID, UserName, Email, Password, Role FROM User WHERE Email = '$email'";
-        $result = $this->connection->query($query);
+        $stmt = $this->connection->prepare("SELECT UserID, UserName, Email, Password, salt, Role FROM Users WHERE Email = ?");
+        $stmt->bind_param("s", $data['email']);
+        $stmt->execute();
+        $result = $stmt->get_result();
         
         if ($result->num_rows === 0) {
             $this->sendErrorResponse("User not found", 401);
@@ -284,11 +280,14 @@ class API{
         
         $user = $result->fetch_assoc();
         
-        if (!password_verify($data['password'], $user['Password'])) {
+        // Verify password using the same hashing method as registration
+        $hashedInputPassword = hash("sha512", $data['password'] . $user['salt']);
+        if ($hashedInputPassword !== $user['Password']) {
             $this->sendErrorResponse("Invalid credentials", 401);
         }
         
         unset($user['Password']);
+        unset($user['salt']);
         
         $this->sendSuccessResponse([
             'message' => 'Login successful',
@@ -297,13 +296,8 @@ class API{
     }
 
     // =========== USER OPERATIONS ==========
-    private function handleDeleteUser() {
-        $userID = $_GET['id'] ?? null;
-        
-        if (!$userID) {
-            $data = json_decode(file_get_contents('php://input'), true);
-            $userID = $data['id'] ?? null;
-        }
+    private function handleDeleteUser($data) {
+        $userID = $data['id'] ?? null;
         
         if (!$userID) {
             $this->sendErrorResponse("User ID is required", 400);
@@ -312,9 +306,10 @@ class API{
         $this->connection->begin_transaction();
         
         try {
-            $userID = $this->connection->real_escape_string($userID);
-            $queryCheckRole = "SELECT Role FROM User WHERE UserID = '$userID'";
-            $roleResult = $this->connection->query($queryCheckRole);
+            $stmt = $this->connection->prepare("SELECT Role FROM Users WHERE UserID = ?");
+            $stmt->bind_param("i", $userID);
+            $stmt->execute();
+            $roleResult = $stmt->get_result();
             
             if ($roleResult->num_rows === 0) {
                 $this->connection->rollback();
@@ -323,18 +318,21 @@ class API{
             
             $user = $roleResult->fetch_assoc();
             
-            if ($user['Role'] === 'customer') {
-                $queryDeleteCustomer = "DELETE FROM Customer WHERE UserID = '$userID'";
-                if (!$this->connection->query($queryDeleteCustomer)) 
+            if ($user['Role'] === 'Customer') {
+                $stmt = $this->connection->prepare("DELETE FROM Customer WHERE UserID = ?");
+                $stmt->bind_param("i", $userID);
+                if (!$stmt->execute()) 
                     throw new Exception('Failed to delete customer record');
-            } else if ($user['Role'] === 'admin') {
-                $queryDeleteAdmin = "DELETE FROM Admin WHERE UserID = '$userID'";
-                if (!$this->connection->query($queryDeleteAdmin)) 
+            } else if ($user['Role'] === 'Admin') {
+                $stmt = $this->connection->prepare("DELETE FROM Admin WHERE UserID = ?");
+                $stmt->bind_param("i", $userID);
+                if (!$stmt->execute()) 
                     throw new Exception('Failed to delete admin record');
             }
             
-            $queryDeleteUser = "DELETE FROM User WHERE UserID = '$userID'";
-            if (!$this->connection->query($queryDeleteUser)) 
+            $stmt = $this->connection->prepare("DELETE FROM Users WHERE UserID = ?");
+            $stmt->bind_param("i", $userID);
+            if (!$stmt->execute()) 
                 throw new Exception('Failed to delete user record');
             
             $this->connection->commit();
@@ -348,9 +346,7 @@ class API{
     }
 
     // =========== REVIEW OPERATIONS ==========
-    private function handleInsertReview() {
-        $data = json_decode(file_get_contents('php://input'), true);
-        
+    private function handleInsertReview($data) {
         if (!isset($data['productID']) || !isset($data['rating'])) {
             $this->sendErrorResponse("Product ID and rating are required", 400);
         }
@@ -364,17 +360,10 @@ class API{
         }
         
         try {
-            $productID = $this->connection->real_escape_string($data['productID']);
-            $rating = $this->connection->real_escape_string($data['rating']);
-            $userID = $userID !== null ? $this->connection->real_escape_string($userID) : 'NULL';
-            $comment = $comment !== null ? "'" . $this->connection->real_escape_string($comment) . "'" : 'NULL';
+            $stmt = $this->connection->prepare("INSERT INTO Review (ProductID, UserID, Date, Rating, Comment) VALUES (?, ?, ?, ?, ?)");
+            $stmt->bind_param("iisis", $data['productID'], $userID, $currentDate, $data['rating'], $comment);
             
-            if ($userID !== 'NULL') 
-                $userID = "'$userID'";
-            
-            $query = "INSERT INTO Review (ProductID, UserID, Date, Rating, Comment) VALUES ('$productID', $userID, '$currentDate', '$rating', $comment)";
-            
-            if (!$this->connection->query($query)) 
+            if (!$stmt->execute()) 
                 throw new Exception($this->connection->error);
             
             $reviewID = $this->connection->insert_id;
@@ -390,9 +379,7 @@ class API{
     }
 
     // =========== PRODUCT OPERATIONS ==========
-    private function handleAddProduct() {
-        $data = json_decode(file_get_contents('php://input'), true);
-        
+    private function handleAddProduct($data) {
         if (!isset($data['productName'])) {
             $this->sendErrorResponse("Product name is required", 400);
         }
@@ -405,25 +392,22 @@ class API{
         $this->connection->begin_transaction();
         
         try {
-            $productName = $this->connection->real_escape_string($data['productName']);
-            $brand = $brand !== null ? "'" . $this->connection->real_escape_string($brand) . "'" : 'NULL';
-            $description = $description !== null ? "'" . $this->connection->real_escape_string($description) . "'" : 'NULL';
-            $imageURL = $imageURL !== null ? "'" . $this->connection->real_escape_string($imageURL) . "'" : 'NULL';
+            $stmt = $this->connection->prepare("INSERT INTO Product (ProductName, Brand, Description, ImageURL) VALUES (?, ?, ?, ?)");
+            $stmt->bind_param("ssss", $data['productName'], $brand, $description, $imageURL);
             
-            $queryProduct = "INSERT INTO Product (ProductName, Brand, Description, ImageURL) VALUES ('$productName', $brand, $description, $imageURL)";
-            
-            if (!$this->connection->query($queryProduct)) 
+            if (!$stmt->execute()) 
                 throw new Exception($this->connection->error);
             
             $productID = $this->connection->insert_id;
             
-            if (!empty($categories)) 
+            if (!empty($categories)) {
+                $stmt = $this->connection->prepare("INSERT INTO ProductCategory (ProductID, CategoryID) VALUES (?, ?)");
                 foreach ($categories as $categoryID) {
-                    $categoryID = $this->connection->real_escape_string($categoryID);
-                    $queryCategory = "INSERT INTO ProductCategory (ProductID, CategoryID) VALUES ('$productID', '$categoryID')";
-                    if (!$this->connection->query($queryCategory)) 
+                    $stmt->bind_param("ii", $productID, $categoryID);
+                    if (!$stmt->execute()) 
                         throw new Exception($this->connection->error);
                 }
+            }
             
             $this->connection->commit();
             
@@ -439,9 +423,7 @@ class API{
     }
 
     // Edit an existing product
-    private function handleEditProduct() {
-        $data = json_decode(file_get_contents('php://input'), true);
-        
+    private function handleEditProduct($data) {
         if (!isset($data['productID'])) {
             $this->sendErrorResponse("Product ID is required", 400);
         }
@@ -449,10 +431,10 @@ class API{
         $this->connection->begin_transaction();
         
         try {
-            $productID = $this->connection->real_escape_string($data['productID']);
-            
-            $queryCheck = "SELECT ProductID FROM Product WHERE ProductID = '$productID'";
-            $result = $this->connection->query($queryCheck);
+            $stmt = $this->connection->prepare("SELECT ProductID FROM Product WHERE ProductID = ?");
+            $stmt->bind_param("i", $data['productID']);
+            $stmt->execute();
+            $result = $stmt->get_result();
             
             if ($result->num_rows === 0) {
                 $this->connection->rollback();
@@ -460,44 +442,56 @@ class API{
             }
             
             $updateFields = [];
+            $updateValues = [];
+            $types = "";
             
             if (isset($data['productName'])) {
-                $productName = $this->connection->real_escape_string($data['productName']);
-                $updateFields[] = "ProductName = '$productName'";
+                $updateFields[] = "ProductName = ?";
+                $updateValues[] = $data['productName'];
+                $types .= "s";
             }
             
             if (isset($data['brand'])) {
-                $brand = $this->connection->real_escape_string($data['brand']);
-                $updateFields[] = "Brand = '$brand'";
+                $updateFields[] = "Brand = ?";
+                $updateValues[] = $data['brand'];
+                $types .= "s";
             }
             
             if (isset($data['description'])) {
-                $description = $this->connection->real_escape_string($data['description']);
-                $updateFields[] = "Description = '$description'";
+                $updateFields[] = "Description = ?";
+                $updateValues[] = $data['description'];
+                $types .= "s";
             }
             
             if (isset($data['imageURL'])) {
-                $imageURL = $this->connection->real_escape_string($data['imageURL']);
-                $updateFields[] = "ImageURL = '$imageURL'";
+                $updateFields[] = "ImageURL = ?";
+                $updateValues[] = $data['imageURL'];
+                $types .= "s";
             }
             
             if (!empty($updateFields)) {
-                $queryUpdate = "UPDATE Product SET " . implode(', ', $updateFields) . " WHERE ProductID = '$productID'";
+                $updateValues[] = $data['productID'];
+                $types .= "i";
                 
-                if (!$this->connection->query($queryUpdate)) 
+                $query = "UPDATE Product SET " . implode(', ', $updateFields) . " WHERE ProductID = ?";
+                $stmt = $this->connection->prepare($query);
+                $stmt->bind_param($types, ...$updateValues);
+                
+                if (!$stmt->execute()) 
                     throw new Exception($this->connection->error);
             }
             
             if (isset($data['categories'])) {
-                $queryDeleteCategories = "DELETE FROM ProductCategory WHERE ProductID = '$productID'";
+                $stmt = $this->connection->prepare("DELETE FROM ProductCategory WHERE ProductID = ?");
+                $stmt->bind_param("i", $data['productID']);
                 
-                if (!$this->connection->query($queryDeleteCategories)) 
+                if (!$stmt->execute()) 
                     throw new Exception($this->connection->error);
                 
+                $stmt = $this->connection->prepare("INSERT INTO ProductCategory (ProductID, CategoryID) VALUES (?, ?)");
                 foreach ($data['categories'] as $categoryID) {
-                    $categoryID = $this->connection->real_escape_string($categoryID);
-                    $queryInsertCategory = "INSERT INTO ProductCategory (ProductID, CategoryID) VALUES ('$productID', '$categoryID')";
-                    if (!$this->connection->query($queryInsertCategory)) 
+                    $stmt->bind_param("ii", $data['productID'], $categoryID);
+                    if (!$stmt->execute()) 
                         throw new Exception($this->connection->error);
                 }
             }
@@ -512,31 +506,27 @@ class API{
         }
     }
 
-    private function handleDeleteProduct() {
-        $productID = $_GET['id'] ?? null;
-        
-        if (!$productID) {
-            $data = json_decode(file_get_contents('php://input'), true);
-            $productID = $data['id'] ?? null;
-        }
+    private function handleDeleteProduct($data) {
+        $productID = $data['id'] ?? null;
         
         if (!$productID) {
             $this->sendErrorResponse("Product ID is required", 400);
         }
         
         try {
-            $productID = $this->connection->real_escape_string($productID);
-            
-            $queryCheck = "SELECT ProductID FROM Product WHERE ProductID = '$productID'";
-            $result = $this->connection->query($queryCheck);
+            $stmt = $this->connection->prepare("SELECT ProductID FROM Product WHERE ProductID = ?");
+            $stmt->bind_param("i", $productID);
+            $stmt->execute();
+            $result = $stmt->get_result();
             
             if ($result->num_rows === 0) {
                 $this->sendErrorResponse("Product not found", 404);
             }
             
-            $queryDelete = "DELETE FROM Product WHERE ProductID = '$productID'";
+            $stmt = $this->connection->prepare("DELETE FROM Product WHERE ProductID = ?");
+            $stmt->bind_param("i", $productID);
             
-            if (!$this->connection->query($queryDelete)) 
+            if (!$stmt->execute()) 
                 throw new Exception($this->connection->error);
             
             $this->sendSuccessResponse(['message' => 'Product deleted successfully']);
@@ -612,29 +602,38 @@ class API{
             $this->sendErrorResponse("Filtering value is required.", 400);
         $criteria = $data["Criteria"];
         $value = $data["Value"];
+        
+        $sql = "";
         switch ($criteria) {
             case 'Retailer':
-                $col = "R.RetailerName";
+                $sql = "
+                    SELECT DISTINCT P.ProductID, P.ProductName, P.Brand, P.Description, P.ImageURL
+                    FROM Product P
+                    LEFT JOIN Listing L ON P.ProductID = L.ProductID
+                    LEFT JOIN Retailer R ON L.RetailerID = R.RetailerID
+                    WHERE R.RetailerName = ?
+                ";
                 break;
             case 'Brand':
-                $col = "P.Brand";
+                $sql = "
+                    SELECT DISTINCT P.ProductID, P.ProductName, P.Brand, P.Description, P.ImageURL
+                    FROM Product P
+                    WHERE P.Brand = ?
+                ";
                 break;
             case 'Category':
-                $col = "C.CategoryName";
+                $sql = "
+                    SELECT DISTINCT P.ProductID, P.ProductName, P.Brand, P.Description, P.ImageURL
+                    FROM Product P
+                    LEFT JOIN ProductCategory PC ON P.ProductID = PC.ProductID
+                    LEFT JOIN Category C ON PC.CategoryID = C.CategoryID
+                    WHERE C.CategoryName = ?
+                ";
                 break;
             default:
                 $this->sendErrorResponse("Invalid filter criteria.", 400);
         }
 
-        $sql = "
-            SELECT DISTINCT P.ProductID, P.ProductName, P.Brand, P.Description, P.ImageURL
-            FROM Product P
-            LEFT JOIN Listing L ON P.ProductID = L.ProductID
-            LEFT JOIN Retailer R ON L.RetailerID = R.RetailerID
-            LEFT JOIN ProductCategory PC ON P.ProductID = PC.ProductID
-            LEFT JOIN Category C ON PC.CategoryID = C.CategoryID
-            WHERE $col = ?
-        ";
         $stmt = $this->connection->prepare($sql);
         $stmt->bind_param("s", $value);
         $stmt->execute();
