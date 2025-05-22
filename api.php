@@ -92,12 +92,12 @@ class API{
         $check5 = !preg_match("/[^A-Za-z0-9]/", $data["password"]);
         if($check1 || $check2 || $check3 || $check4 || $check5)
             $this->sendErrorResponse("Password must be at least 8 characters with uppercase, lowercase, number and special character", 400);
-        $vaildRoles = ["Customer", "Admin"];
+        $vaildRoles = ["customer", "admin"];
         if(!in_array($data["role"], $vaildRoles))
             $this->sendErrorResponse("Invalid user role.", 400);
 
         // checking if the email received is already in the table
-        $mysql_statement = $this->connection->prepare("SELECT UserID FROM Users WHERE Email = ?");
+        $mysql_statement = $this->connection->prepare("SELECT UserID FROM user WHERE Email = ?");
         $mysql_statement->bind_param("s", $data["email"]);
         $mysql_statement->execute();
         $mysql_statement->store_result();
@@ -110,7 +110,7 @@ class API{
         $hashedPassword = hash("sha512", $data["password"] . $salt);
         $apikey = bin2hex(random_bytes(16));
 
-        $mysql_statement = $this->connection->prepare("INSERT INTO Users (UserName, Email, Password, salt, Role, apikey)
+        $mysql_statement = $this->connection->prepare("INSERT INTO user (UserName, Email, Password, salt, Role, apikey)
         VALUES (?, ?, ?, ?, ?, ?)");
         $mysql_statement->bind_param("ssssss", $data["username"], $data["email"], $hashedPassword, $salt, $data["role"], $apikey);
         if($mysql_statement->execute())
@@ -269,7 +269,7 @@ class API{
             $this->sendErrorResponse("Email and password are required", 400);
         }
         
-        $stmt = $this->connection->prepare("SELECT UserID, UserName, Email, Password, salt, Role FROM Users WHERE Email = ?");
+        $stmt = $this->connection->prepare("SELECT UserID, UserName, Email, Password, salt, Role FROM user WHERE Email = ?");
         $stmt->bind_param("s", $data['email']);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -306,7 +306,7 @@ class API{
         $this->connection->begin_transaction();
         
         try {
-            $stmt = $this->connection->prepare("SELECT Role FROM Users WHERE UserID = ?");
+            $stmt = $this->connection->prepare("SELECT Role FROM user WHERE UserID = ?");
             $stmt->bind_param("i", $userID);
             $stmt->execute();
             $roleResult = $stmt->get_result();
@@ -330,7 +330,7 @@ class API{
                     throw new Exception('Failed to delete admin record');
             }
             
-            $stmt = $this->connection->prepare("DELETE FROM Users WHERE UserID = ?");
+            $stmt = $this->connection->prepare("DELETE FROM user WHERE UserID = ?");
             $stmt->bind_param("i", $userID);
             if (!$stmt->execute()) 
                 throw new Exception('Failed to delete user record');
@@ -360,7 +360,7 @@ class API{
         }
         
         try {
-            $stmt = $this->connection->prepare("INSERT INTO Review (ProductID, UserID, Date, Rating, Comment) VALUES (?, ?, ?, ?, ?)");
+            $stmt = $this->connection->prepare("INSERT INTO review (ProductID, UserID, Date, Rating, Comment) VALUES (?, ?, ?, ?, ?)");
             $stmt->bind_param("iisis", $data['productID'], $userID, $currentDate, $data['rating'], $comment);
             
             if (!$stmt->execute()) 
@@ -392,7 +392,7 @@ class API{
         $this->connection->begin_transaction();
         
         try {
-            $stmt = $this->connection->prepare("INSERT INTO Product (ProductName, Brand, Description, ImageURL) VALUES (?, ?, ?, ?)");
+            $stmt = $this->connection->prepare("INSERT INTO product (ProductName, Brand, Description, ImageURL) VALUES (?, ?, ?, ?)");
             $stmt->bind_param("ssss", $data['productName'], $brand, $description, $imageURL);
             
             if (!$stmt->execute()) 
@@ -401,7 +401,7 @@ class API{
             $productID = $this->connection->insert_id;
             
             if (!empty($categories)) {
-                $stmt = $this->connection->prepare("INSERT INTO ProductCategory (ProductID, CategoryID) VALUES (?, ?)");
+                $stmt = $this->connection->prepare("INSERT INTO productcategory (ProductID, CategoryID) VALUES (?, ?)");
                 foreach ($categories as $categoryID) {
                     $stmt->bind_param("ii", $productID, $categoryID);
                     if (!$stmt->execute()) 
@@ -431,7 +431,7 @@ class API{
         $this->connection->begin_transaction();
         
         try {
-            $stmt = $this->connection->prepare("SELECT ProductID FROM Product WHERE ProductID = ?");
+            $stmt = $this->connection->prepare("SELECT ProductID FROM product WHERE ProductID = ?");
             $stmt->bind_param("i", $data['productID']);
             $stmt->execute();
             $result = $stmt->get_result();
@@ -473,7 +473,7 @@ class API{
                 $updateValues[] = $data['productID'];
                 $types .= "i";
                 
-                $query = "UPDATE Product SET " . implode(', ', $updateFields) . " WHERE ProductID = ?";
+                $query = "UPDATE product SET " . implode(', ', $updateFields) . " WHERE ProductID = ?";
                 $stmt = $this->connection->prepare($query);
                 $stmt->bind_param($types, ...$updateValues);
                 
@@ -482,13 +482,13 @@ class API{
             }
             
             if (isset($data['categories'])) {
-                $stmt = $this->connection->prepare("DELETE FROM ProductCategory WHERE ProductID = ?");
+                $stmt = $this->connection->prepare("DELETE FROM productcategory WHERE ProductID = ?");
                 $stmt->bind_param("i", $data['productID']);
                 
                 if (!$stmt->execute()) 
                     throw new Exception($this->connection->error);
                 
-                $stmt = $this->connection->prepare("INSERT INTO ProductCategory (ProductID, CategoryID) VALUES (?, ?)");
+                $stmt = $this->connection->prepare("INSERT INTO productcategory (ProductID, CategoryID) VALUES (?, ?)");
                 foreach ($data['categories'] as $categoryID) {
                     $stmt->bind_param("ii", $data['productID'], $categoryID);
                     if (!$stmt->execute()) 
@@ -514,7 +514,7 @@ class API{
         }
         
         try {
-            $stmt = $this->connection->prepare("SELECT ProductID FROM Product WHERE ProductID = ?");
+            $stmt = $this->connection->prepare("SELECT ProductID FROM product WHERE ProductID = ?");
             $stmt->bind_param("i", $productID);
             $stmt->execute();
             $result = $stmt->get_result();
@@ -523,7 +523,7 @@ class API{
                 $this->sendErrorResponse("Product not found", 404);
             }
             
-            $stmt = $this->connection->prepare("DELETE FROM Product WHERE ProductID = ?");
+            $stmt = $this->connection->prepare("DELETE FROM product WHERE ProductID = ?");
             $stmt->bind_param("i", $productID);
             
             if (!$stmt->execute()) 
