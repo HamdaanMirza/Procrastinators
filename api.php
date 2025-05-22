@@ -295,7 +295,7 @@ class API{
         ]);
     }
 
-    // =========== USER OPERATIONS ==========
+    //User Operations
     private function handleDeleteUser($data) {
         $userID = $data['id'] ?? null;
         
@@ -345,7 +345,7 @@ class API{
         }
     }
 
-    // =========== REVIEW OPERATIONS ==========
+    //Review Operations
     private function handleInsertReview($data) {
         if (!isset($data['productID']) || !isset($data['rating'])) {
             $this->sendErrorResponse("Product ID and rating are required", 400);
@@ -378,7 +378,7 @@ class API{
         }
     }
 
-    // =========== PRODUCT OPERATIONS ==========
+    // Product Operations
     private function handleAddProduct($data) {
         if (!isset($data['productName'])) {
             $this->sendErrorResponse("Product name is required", 400);
@@ -543,7 +543,7 @@ class API{
             JOIN Review R ON P.ProductID = R.ProductID
             GROUP BY P.ProductID
             ORDER BY AverageRating DESC
-            LIMIT 10
+            LIMIT 15
         ";
         $stmt = $this->connection->prepare($sql);
         $stmt->execute();
