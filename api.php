@@ -26,16 +26,16 @@ class API{
             $this->sendErrorResponse("Request type not specified.", 400);
         switch($data["Type"]){
             case "Register":
-                $this->handelRegistration($data);
+                $this->handleRegistration($data);
                 break;
             case "AddRetailer":
-                $this->handelAddRetailer($data);
+                $this->handleAddRetailer($data);
                 break;
             case "UpdateRetailer":
-                $this->handelUpdateRetailer($data);
+                $this->handleUpdateRetailer($data);
                 break;
             case "DeleteRetailer":
-                $this->handelDeleteRetailer($data);
+                $this->handleDeleteRetailer($data);
                 break;
             case "Login":
                 $this->handleLogin($data);
@@ -83,7 +83,7 @@ class API{
     "Password": "TestUser1!"
     }
     */
-    private function handelRegistration($data){
+    private function handleRegistration($data){
         //making sure we have all needed fields
         $required = ["UserName", "Email", "Password"];
         foreach($required as $field)
@@ -138,21 +138,33 @@ class API{
         $mysql_statement->close();
     }
 
+
+    /*
+    {
+    Example API call:
+    "Type": "AddRetailer",
+    "RetailerName": "Makro",
+    "RetailerURL": "makro.com",
+    "Country": "South Africa",
+    "City": "Pretoria",
+    "Street": "12 Makro St."
+    }
+    */
     // inserts a retailer into the database
-    private function handelAddRetailer($data){
+    private function handleAddRetailer($data){
         //checks if the required fields are present
         $required = ["RetailerName", "RetailerURL", "Country", "City", "Street"];
         foreach($required as $field)
             if(empty($data[$field]))
                 $this->sendErrorResponse("$field is required.", 400);
         //checking for multiple retailers with same naem
-        $mysql_statement = $this->connection->prepare("SELECT RetailerID FROM Retailer WHERE RetailerName = ?");
+        $mysql_statement = $this->connection->prepare("SELECT RetailerID FROM retailer WHERE RetailerName = ?");
         $mysql_statement->bind_param("s", $data["RetailerName"]);
         $mysql_statement->execute();
         $mysql_statement->store_result();
         if($mysql_statement->num_rows > 0)
             $this->sendErrorResponse("Retailer already present in database", 400);
-        $mysql_statement = $this->connection->prepare("INSERT INTO Retailer (RetailerName, RetailerURL, Country, City, Street)
+        $mysql_statement = $this->connection->prepare("INSERT INTO retailer (RetailerName, RetailerURL, Country, City, Street)
         VALUES (?, ?, ?, ?, ?)");
         // adding to the database
         $mysql_statement->bind_param("sssss", $data["RetailerName"], $data["RetailerURL"], $data["Country"], $data["City"], $data["Street"]);
@@ -164,7 +176,7 @@ class API{
         $mysql_statement->close();
     }
 
-    private function handelUpdateRetailer($data){
+    private function handleUpdateRetailer($data){
         if(!isset($data["RetailerID"]))
             $this->sendErrorResponse("RetailerID is required.", 400);
         $retailerID = (int)$data["RetailerID"];
@@ -254,20 +266,28 @@ class API{
         }
     }
 
-    private function handelDeleteRetailer($data){
+    /*
+    Example of API call:
+    {
+    "Type": "DeleteRetailer",
+    "RetailerID": 149
+    }
+    */
+
+    private function handleDeleteRetailer($data){
         if(!isset($data["RetailerID"]))
             $this->sendErrorResponse("RetailerID is required.", 400);
         $retailerID = (int)$data["RetailerID"];
         try{
             // checking if retailer exists before deleting 
-            $query = $this->connection->prepare("SELECT RetailerID FROM Retailer WHERE RetailerID = ?");
+            $query = $this->connection->prepare("SELECT RetailerID FROM retailer WHERE RetailerID = ?");
             $query->bind_param("i", $retailerID);
             $query->execute();
             $result = $query->get_result();
             if($result->num_rows === 0)
                 $this->sendErrorResponse("No retailer found with given ID.", 404);
             //actually deleting the relevant retailer
-            $query = $this->connection->prepare("DELETE FROM Retailer WHERE RetailerID = ?");
+            $query = $this->connection->prepare("DELETE FROM retailer WHERE RetailerID = ?");
             $query->bind_param("i", $retailerID);
             $query->execute();
             if($query->affected_rows === 0)
@@ -317,6 +337,8 @@ class API{
             "Apikey" => $user["Apikey"]
         ]);
     }
+
+    
 
     private function handleDeleteUser($data) {
         $userID = $data["UserID"] ?? null;
