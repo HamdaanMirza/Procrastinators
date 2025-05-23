@@ -1,109 +1,89 @@
 (function () {
-    function request(type, data, callback) {
+    var API_URL = "../../../api.php";
+
+    function fetchData(type, payload, callback) {
         var xhr = new XMLHttpRequest();
-        xhr.open("POST", "api.php", true);
+        xhr.open("POST", API_URL, true);
         xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
         xhr.onreadystatechange = function () {
             if (xhr.readyState === 4 && xhr.status === 200) {
-                var response = JSON.parse(xhr.responseText);
-                callback(response);
+                callback(JSON.parse(xhr.responseText));
             }
         };
-        data.type = type;
-        xhr.send(JSON.stringify(data));
+        xhr.send(JSON.stringify(Object.assign({ type: type }, payload || {})));
     }
 
     function renderProducts(products) {
-        var container = document.querySelector(".products");
-        container.innerHTML = "";
+        var container = document.querySelector('.products');
+        container.innerHTML = '';
         for (var i = 0; i < products.length; i++) {
             var p = products[i];
-            var div = document.createElement("div");
-            div.className = "product";
+            var div = document.createElement('div');
+            div.className = 'product-card';
             div.innerHTML =
-                "<h3>" + p.name + "</h3>" +
-                "<img src='" + p.image + "' alt='" + p.name + "' width='150'>" +
-                "<p>" + p.description + "</p>" +
-                "<p><strong>R" + p.price + "</strong></p>" +
-                "<p>Brand: " + p.brand + "</p>" +
-                "<p>Category: " + p.category + "</p>" +
-                "<p>Stockist: " + p.stockist + "</p>";
+                '<img src="' + p.ImageURL + '" alt="' + p.ProductName + '">' +
+                '<h3>' + p.ProductName + '</h3>' +
+                '<p>' + p.Description + '</p>' +
+                '<p><strong>Brand:</strong> ' + p.Brand + '</p>' +
+                '<p><strong>Price:</strong> R' + p.Price + '</p>';
             container.appendChild(div);
         }
     }
 
-    function loadProducts() {
-        request("GetAllProducts", {}, function (res) {
-            if (res.success) {
-                renderProducts(res.products);
-            }
-        });
-    }
+    function renderChart(data) {
+        var ctx = document.getElementById('topRatedChart').getContext('2d');
+        var chartData = {
+            labels: [],
+            datasets: [{
+                label: 'Review Count',
+                data: [],
+                backgroundColor: 'rgba(54, 162, 235, 0.6)'
+            }]
+        };
 
-    function loadCategories() {
-        request("GetCategories", {}, function (res) {
-            if (res.success) {
-                var select = document.querySelector(".filters select");
-                for (var i = 0; i < res.categories.length; i++) {
-                    var opt = document.createElement("option");
-                    opt.text = res.categories[i];
-                    select.appendChild(opt);
+        for (var i = 0; i < data.length; i++) {
+            chartData.labels.push(data[i].ProductName);
+            chartData.datasets[0].data.push(data[i].ReviewCount);
+        }
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: chartData,
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
                 }
             }
         });
     }
 
-    function filterProducts() {
-        var category = document.querySelectorAll(".filters select")[0].value;
-        var price = document.querySelectorAll(".filters select")[1].value;
-        var sort = document.querySelectorAll(".filters select")[2].value;
-
-        request("FilterProducts", {
-            category: category,
-            priceRange: price,
-            sortBy: sort
-        }, function (res) {
-            if (res.success) {
-                renderProducts(res.products);
-            }
-        });
-    }
-
-    function searchProducts() {
-        var button = document.querySelector(".searchbar button");
-        var input = document.querySelector(".searchbar input");
-
-        button.addEventListener("click", function () {
-            var query = input.value;
-            request("SearchProducts", { query: query }, function (res) {
-                if (res.success) {
-                    renderProducts(res.products);
-                }
-            });
-        });
-    }
-
-    function loadTopRated() {
-        request("GetTopRated", {}, function (res) {
-            if (res.success) {
-                console.log("Top Products:", res.topProducts);
-                console.log("Review Stats:", res.reviews);
-                // charts or tables 
-            }
-        });
+    function initFilters(categories) {
+        var select = document.querySelector('.filter-box select');
+        for (var i = 0; i < categories.length; i++) {
+            var opt = document.createElement('option');
+            opt.value = categories[i].CategoryID;
+            opt.innerText = categories[i].CategoryName;
+            select.appendChild(opt);
+        }
     }
 
     function init() {
-        loadProducts();
-        loadCategories();
-        searchProducts();
-        var selects = document.querySelectorAll(".filters select");
-        for (var i = 0; i < selects.length; i++) {
-            selects[i].addEventListener("change", filterProducts);
-        }
+        fetchData("GetTopRated", null, function (response) {
+            renderChart(response);
+            renderProducts(response.slice(0, 15));
+        });
 
-        loadTopRated();
+        fetchData("GetAllCategories", null, function (response) {
+            initFilters(response);
+        });
+
+        fetchData("GetAllProducts", null, function (response) {
+            window.allProducts = response; // store globally for filtering/sorting
+        });
     }
 
-    window.addEventListener("DOMContentLoaded", init);
+    init();
 })();
