@@ -76,29 +76,26 @@ class API{
     // registering users
     private function handelRegistration($data){
         //making sure we have all needed fields
-        $required = ["username", "email", "password", "role"];
+        $required = ["UserName", "Email", "Password"];
         foreach($required as $field)
             if(empty($data[$field]))
                 $this->sendErrorResponse("$field is required.", 400);
         //validating email using regex
         $emailRegex = "/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/"; // got from mailtrap.io
-        if(!preg_match($emailRegex, $data["email"]))
+        if(!preg_match($emailRegex, $data["Email"]))
             $this->sendErrorResponse("Invaild email address.", 400);
         //password validation
-        $check1 = strlen($data["password"]) < 8;
-        $check2 = !preg_match("/[A-Z]/", $data["password"]);
-        $check3 = !preg_match("/[a-z]/", $data["password"]);
-        $check4 = !preg_match("/[0-9]/", $data["password"]);
-        $check5 = !preg_match("/[^A-Za-z0-9]/", $data["password"]);
+        $check1 = strlen($data["Password"]) < 8;
+        $check2 = !preg_match("/[A-Z]/", $data["Password"]);
+        $check3 = !preg_match("/[a-z]/", $data["Password"]);
+        $check4 = !preg_match("/[0-9]/", $data["Password"]);
+        $check5 = !preg_match("/[^A-Za-z0-9]/", $data["Password"]);
         if($check1 || $check2 || $check3 || $check4 || $check5)
             $this->sendErrorResponse("Password must be at least 8 characters with uppercase, lowercase, number and special character", 400);
-        $vaildRoles = ["customer", "admin"];
-        if(!in_array($data["role"], $vaildRoles))
-            $this->sendErrorResponse("Invalid user role.", 400);
 
         // checking if the email received is already in the table
         $mysql_statement = $this->connection->prepare("SELECT UserID FROM user WHERE Email = ?");
-        $mysql_statement->bind_param("s", $data["email"]);
+        $mysql_statement->bind_param("s", $data["Email"]);
         $mysql_statement->execute();
         $mysql_statement->store_result();
         if($mysql_statement->num_rows > 0)
@@ -107,14 +104,26 @@ class API{
 
         //password hashing and api key generation
         $salt = bin2hex(random_bytes(16)); 
-        $hashedPassword = hash("sha512", $data["password"] . $salt);
-        $apikey = bin2hex(random_bytes(16));
+        $hashedPassword = hash("sha512", $data["Password"] . $salt);
+        $Apikey = bin2hex(random_bytes(16));
+        $role = "Customer";
 
-        $mysql_statement = $this->connection->prepare("INSERT INTO user (UserName, Email, Password, salt, Role, apikey)
+        $mysql_statement = $this->connection->prepare("INSERT INTO user (UserName, Email, Password, Salt, Role, Apikey)
         VALUES (?, ?, ?, ?, ?, ?)");
-        $mysql_statement->bind_param("ssssss", $data["username"], $data["email"], $hashedPassword, $salt, $data["role"], $apikey);
-        if($mysql_statement->execute())
-            $this->sendSuccessResponse(["apikey"=>$apikey]);
+        $mysql_statement->bind_param("ssssss", $data["UserName"], $data["Email"], $hashedPassword, $salt, $role, $Apikey);
+        if($mysql_statement->execute()){
+            $userId = $this->connection->prepare("SELECT UserID FROM user WHERE UserName = ?");
+            $userId->bind_param("s", $data["UserName"]);
+            $userId->execute();
+            $result = $userId->get_result();
+            $user = $result->fetch_assoc();
+            $mysql_statement2 = $this->connection->prepare("INSERT INTO customer (UserID, UserName) VALUES (?, ?)");
+            $mysql_statement2->bind_param("ss", $user["UserID"], $data["UserName"]);
+            if($mysql_statement2->execute())
+                $this->sendSuccessResponse(["Apikey"=>$Apikey]);
+            else
+                $this->sendErrorResponse("Added to users but not to customers." ,400);
+        }
         else
             $this->sendErrorResponse("Registration failed.", 500);
         $mysql_statement->close();
