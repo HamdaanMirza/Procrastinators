@@ -112,8 +112,12 @@
 
   window.editProduct = function (id) {
     var newName = prompt("Enter new product name:");
-    if (newName) {
-      fetchData("EditProduct", { id: id, name: newName }, function () {
+    var newBrand = prompt("Enter new product Brand:");
+    var newDescription = prompt("Enter new product Description:");
+    var newImageURL = prompt("Enter new product ImageURL:");
+    var newCategories = prompt("Enter new product Categories:");
+    if (newName || newBrand || newDescription || newImageURL || newCategories) {
+      fetchData("EditProduct", {ProductID: id, ProductName: newName, Brand: newBrand, Description: newDescription, ImageURL: newImageURL, Categories: newCategories}, function () {
         loadTopRated();
       });
     }
@@ -121,7 +125,7 @@
 
   window.deleteProduct = function (id) {
     if (confirm("Are you sure you want to delete this product?")) {
-      fetchData("DeleteProduct", { id: id }, function () {
+      fetchData("DeleteProduct", { ProductID: id }, function () {
         loadTopRated();
       });
     }
@@ -130,15 +134,15 @@
   function addProduct() {
     var name = prompt("Product name?");
     var brand = prompt("Brand?");
-    var price = prompt("Price?");
     var description = prompt("Description?");
     var imageURL = prompt("Image URL?");
+    var categories = prompt("Categories?");
     fetchData("AddProduct", {
       ProductName: name,
       Brand: brand,
-      Price: price,
       Description: description,
-      ImageURL: imageURL
+      ImageURL: imageURL,
+      Categories: categories
     }, function () {
       loadTopRated();
     });
