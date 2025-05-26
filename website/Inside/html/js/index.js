@@ -5,15 +5,26 @@
 
   function fetchData(type, payload, callback) {
     var xhr = new XMLHttpRequest();
-    xhr.open("POST", "../../../api.php", true);
-    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhr.open("POST", "../../api.php", true);
+    xhr.setRequestHeader("Content-Type", "application/json");
     xhr.onreadystatechange = function () {
       if (xhr.readyState === 4 && xhr.status === 200) {
-        callback(JSON.parse(xhr.responseText));
+        try{
+          var response = JSON.parse(xhr.responseText);
+          console.log(response.data);
+          if(response && response.status === "success")
+            callback(response);
+          else
+            console.log("Api error.");
+        }
+        catch(e){
+          console.error("Error from api call: ", e, xhr.responseText);
+        }
       }
     };
     var data = payload || {};
-    data.type = type;
+    data.Type = type;
+    console.log(JSON.stringify(data));
     xhr.send(JSON.stringify(data));
   }
 
@@ -37,20 +48,26 @@
           '<button onclick="editProduct(' + p.ProductID + ')">Edit</button>' +
           '<button onclick="deleteProduct(' + p.ProductID + ')">Delete</button>';
       }
+      card.addEventListener("click", function(product) {
+            return function(){
+                localStorage.setItem("selectedProductId", product.ProductID);
+                window.location.href = "view.html";
+            };
+        }(p));
       container.appendChild(card);
     }
   }
 
   function loadTopRated() {
     fetchData("GetTopRated", null, function (response) {
-      products = response;
+      products = response.data;
       renderProducts(products);
     });
   }
 
   function loadCategories() {
     fetchData("GetCategories", null, function (response) {
-      categories = response;
+      categories = response.data;
       var select = document.querySelector(".filters select");
       for (var i = 0; i < categories.length; i++) {
         var opt = document.createElement("option");
@@ -87,6 +104,8 @@
   }
 
   function setupEventListeners() {
+    var products = document.querySelectorAll(".product-card");
+
     var selects = document.querySelectorAll(".filters select");
     for (var i = 0; i < selects.length; i++) {
       selects[i].addEventListener("change", filterAndSort);

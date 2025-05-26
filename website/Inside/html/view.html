@@ -26,45 +26,49 @@
             <div class="product-details">
                 <div class="details-left">
                     <h3>Product Information</h3>
-                    <p><strong>Price:</strong> R8999.99</p>
-                    <p><strong>Brand:</strong> Lenovo</p>
-                    <p><strong>Model:</strong> Ideapad 3</p>
-                    <p><strong>Processor:</strong> Intel Core i5</p>
-                    <p><strong>RAM:</strong> 12GB</p>
-                    <p><strong>Storage:</strong> 512GB SSD</p>
-                    <p><strong>Graphics:</strong> NVIDIA RTX 3060</p>
-                    <p><strong>Screen Size:</strong> 15.6 inches</p>
-                    <p><strong>Weight:</strong> 2.3kg</p>
+                    <p id="name"></p>
+                    <p id="price"><strong></strong></p>
+                    <p id="brand"><strong></strong></p>
+                    <p id="date"><strong></strong></p>
                 </div>
 
                 <div class="details-right">
                     <h3>Reviews</h3>
-                    <div class="rating">
-                        <input value="5" name="rating" id="star5" type="radio">
-                        <label for="star5"></label>
-                        <input value="4" name="rating" id="star4" type="radio">
-                        <label for="star4"></label>
-                        <input value="3" name="rating" id="star3" type="radio">
-                        <label for="star3"></label>
-                        <input value="2" name="rating" id="star2" type="radio">
-                        <label for="star2"></label>
-                        <input value="1" name="rating" id="star1" type="radio">
-                        <label for="star1"></label>
+                    <div id="ratingBtn">
+                        <input type="radio" id="star5" name="rating" value="5">
+                        <label for="star5" title="5 stars"></label>
+
+                        <input type="radio" id="star4" name="rating" value="4">
+                        <label for="star4" title="4 stars"></label>
+
+                        <input type="radio" id="star3" name="rating" value="3">
+                        <label for="star3" title="3 stars"></label>
+
+                        <input type="radio" id="star2" name="rating" value="2">
+                        <label for="star2" title="2 stars"></label>
+
+                        <input type="radio" id="star1" name="rating" value="1">
+                        <label for="star1" title="1 star"></label>
+                    </div>
+                    <p id="rating"><strong></strong></p>
+                    <div class="comment-section">
+                        <h4>Leave a Comment</h4>
+                        <textarea id="comment" placeholder="Type your comment here..."></textarea><br>
+                        <button id="submit-review">Submit Review</button>
                     </div>
                 </div>
             </div>
 
             <div class="description">
                 <h3>Product Description</h3>
-                <p>The Lenovo Ideapad 3 is a versatile budget laptop featuring an Intel Core i5 processor, 12GB of RAM,
-                    and a 512GB SSD for fast performance and ample storage. Equipped with an NVIDIA RTX 3060 graphics
-                    card, it handles casual gaming and multimedia tasks with ease. The 15.6-inch display offers a clear
-                    and spacious viewing experience, while the laptop's 2.3kg weight makes it easy to carry for work,
-                    study, or entertainment on the go.</p>
+                <p id="description-text"></p>
+            </div>
+            <div>
+                <img src="" class="picture" id="pic" alt="">
             </div>
         </div>
     </div>
-
+    <script src="js/view.js"></script>
 </body>
 
 </html>

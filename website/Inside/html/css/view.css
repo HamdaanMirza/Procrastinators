@@ -154,30 +154,44 @@ h3{
     line-height: 1.6;
 }
 
-
-.rating {
-  display: inline-block;
+#ratingBtn {
+    direction: rtl;
+    display: inline-block;
 }
 
-.rating input {
-  display: none;
+#ratingBtn input {
+    display: none;
 }
 
-.rating label {
-  float: right;
-  cursor: pointer;
-  color: #ccc;
-  transition: color 0.3s;
+#ratingBtn label {
+    float: right;
+    cursor: pointer;
+    color: #ccc;
+    transition: color 0.3s;
 }
 
-.rating label:before {
-  content: '\2605';
-  font-size: 30px;
+#ratingBtn label:before {
+    content: '\2605';
+    font-size: 30px;
 }
 
-.rating input:checked ~ label,
-.rating label:hover,
-.rating label:hover ~ label {
-  color: #d7ce1d;
-  transition: color 0.3s;
+#ratingBtn input:checked ~ label,
+#ratingBtn label:hover,
+#ratingBtn label:hover ~ label {
+    color: #d7ce1d;
+    transition: color 0.3s;
+}
+
+#pic {
+    max-width: 80%;
+    max-height: 400px;
+    margin: 20px auto;
+    display: block;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    border: 3px solid #d7ce1d;
+    object-fit: contain;
+    background-color: white;
+    padding: 10px;
+    transition: all 0.3s ease;
 }
