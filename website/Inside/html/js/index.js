@@ -34,7 +34,7 @@
     for (var i = 0; i < data.length; i++) {
       var p = data[i];
       var card = document.createElement("div");
-      card.className = "product-card";
+      card.className = "product";
       card.innerHTML =
         '<img src="' + p.ImageURL + '" alt="' + p.ProductName + '" />' +
         '<h3>' + p.ProductName + '</h3>' +
