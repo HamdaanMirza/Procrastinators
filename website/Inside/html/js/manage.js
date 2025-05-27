@@ -22,20 +22,14 @@
   }
 
   function setupEventListeners() {
-      var manageProductBtn = document.createElement("button");
-      manageProductBtn.innerText = "Manage Products";
+      var manageProductBtn = document.getElementById("btnManageProducts");
       manageProductBtn.onclick = manageProducts;
-      document.body.appendChild(manageProductBtn);
 
-      var manageCategoriesBtn = document.createElement("button");
-      manageCategoriesBtn.innerText = "Manage Categories";
+      var manageCategoriesBtn = document.getElementById("btnManageCategories");
       manageCategoriesBtn.onclick = manageCategories;
-      document.body.appendChild(manageCategoriesBtn);
 
-      var manageRetailersBtn = document.createElement("button");
-      manageRetailersBtn.innerText = "Manage Retailers";
+      var manageRetailersBtn = document.getElementById("btnManageRetailers");
       manageRetailersBtn.onclick = manageRetailers;
-      document.body.appendChild(manageRetailersBtn);
   }
 
   function manageProducts() {
@@ -231,12 +225,6 @@
   }
 
   window.onload = function () {
-    if (localStorage.getItem("loggedIn") === "true") {
-      var loginLink = document.getElementById("loginLink");
-      var registerLink = document.getElementById("registerLink");
-      if (loginLink) loginLink.style.display = "none";
-      if (registerLink) registerLink.style.display = "none";
-    }
     setupEventListeners();
   };
 })();

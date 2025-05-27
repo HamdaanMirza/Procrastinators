@@ -19,7 +19,7 @@ function saveUserData(userData) {
 function saveIsAdmin(isAdmin) {
     try {
         localStorage.setItem('isAdmin', JSON.stringify(isAdmin));
-        console.log('isAdmin to localStorage:', userData);
+        console.log('isAdmin to localStorage:', isAdmin);
     } catch (error) {
         console.error('Failed to save isAdmin:', error);
     }

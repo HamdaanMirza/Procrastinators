@@ -1,40 +1,6 @@
 (function () {
   var products = [];
   var categories = [];
-  var user = getSavedUserData();
-  var apiKey = getSavedApiKey();
-  var isAdmin = getIsAdmin();
-
-  function getIsAdmin() {
-    try {
-        return localStorage.getItem('accessLevel');
-    }
-    catch (error) {
-        console.error('Failed to retrieve accessLevel from localStorage:', error);
-        return null;
-    }
-  }
-
-function getSavedUserData() {
-    try{
-        const userData = localStorage.getItem('userData');
-        return userData ? JSON.parse(userData) : null;
-    }
-    catch (error) {
-        console.error('Failed to retrieve user data from localStorage:', error);
-        return null;
-    }
-  }
-
-  function getSavedApiKey() {
-    try {
-        return localStorage.getItem('userApiKey');
-    }
-    catch (error) {
-        console.error('Failed to retrieve API key from localStorage:', error);
-        return null;
-    }
-}
 
   function fetchData(type, payload, callback) {
     var xhr = new XMLHttpRequest();
@@ -172,17 +138,6 @@ function getSavedUserData() {
   }
 
   window.onload = function () {
-    if (localStorage.getItem("loggedIn") === "true") {
-      var manageLink = document.getElementById("manageLink");
-      var loginLink = document.getElementById("loginLink");
-      var registerLink = document.getElementById("registerLink");
-      //if(isAdmin !== true) {
-      //  if(manageLink) manageLink.style.display = "none";
-      //}
-      if (loginLink) loginLink.style.display = "none";
-      if (registerLink) registerLink.style.display = "none";
-      
-    }
     loadFilteringData();
     filterAndSort();
     setupEventListeners();
@@ -190,16 +145,21 @@ function getSavedUserData() {
 })();
 
 document.addEventListener('DOMContentLoaded', () => {
+  const manageLink = document.getElementById('manage-link');
   const loginLink = document.getElementById('login-link');
   const signupLink = document.getElementById('signup-link');
   const isLoggedIn = localStorage.getItem('loggedIn') === 'true';
+
+  if(!isLoggedIn || localStorage.getItem('isAdmin') === "false") {
+        manageLink.style.display = "none";
+  }
 
   if (isLoggedIn) {
       loginLink.style.display = 'none';
       signupLink.innerHTML = 'Logout';
       signupLink.href = '#';
       signupLink.onclick = logout;
-  }
+    }
 });
 
 function logout() {
