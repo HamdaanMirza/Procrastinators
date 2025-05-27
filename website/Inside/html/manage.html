@@ -19,13 +19,50 @@
             <li><a href="manage.html">Management</a></li>
         </ul>
     </header>
-    <div class="admin-actions" style="display:none;">
-    <button id="btn">Add Product</button>
-    <button id="btnManageCategories">Manage Categories</button>
-    <button id="btnManageRetailers">Manage Retailers</button>
-    </div>
-    <div class="products">
-    </div>
+    <main>
+        <h2>Product Management</h2>
+        <div class="management-section">
+            <form id="productForm">
+                <input type="text" id="productName" placeholder="Product Name" required>
+                <input type="text" id="productBrand" placeholder="Brand">
+                <textarea id="productDescription" placeholder="Description"></textarea>
+                <input type="text" id="productImageURL" placeholder="Image URL">
+                <div class="button-group">
+                    <button type="submit" data-action="add">Add Product</button>
+                    <button type="submit" data-action="edit">Edit Product</button>
+                    <button type="submit" data-action="delete">Delete Product</button>
+                </div>
+            </form>
+        </div>
+
+        <h2>Category Management</h2>
+        <div class="management-section">
+            <form id="categoryForm">
+                <input type="text" id="categoryName" placeholder="Category Name" required>
+                <div class="button-group">
+                    <button type="submit" data-action="add">Add Category</button>
+                    <button type="submit" data-action="edit">Edit Category</button>
+                    <button type="submit" data-action="delete">Delete Category</button>
+                </div>
+            </form>
+        </div>
+
+        <h2>Retailer Management</h2>
+        <div class="management-section">
+            <form id="retailerForm">
+                <input type="text" id="retailerName" placeholder="Retailer Name" required>
+                <input type="text" id="retailerCountry" placeholder="Country" required>
+                <input type="text" id="retailerCity" placeholder="City" required>
+                <input type="text" id="retailerStreet" placeholder="Street" required>
+                <input type="text" id="retailerURL" placeholder="Retailer URL" required>
+                <div class="button-group">
+                    <button type="submit" data-action="add">Add Retailer</button>
+                    <button type="submit" data-action="edit">Edit Retailer</button>
+                    <button type="submit" data-action="delete">Delete Retailer</button>
+                </div>
+            </form>
+        </div>
+    </main>
     <script src="js/manage.js"></script>
 </body>
 
