@@ -30,6 +30,12 @@ h1 {
     padding-right: 500px;
 }
 
+h3 {
+    font-size: 20px;
+    color: #182628;
+    padding-right: 500px;
+}
+
 header ul {
     list-style: none;
     padding-right: 50px;
