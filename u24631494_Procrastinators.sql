@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: May 27, 2025 at 11:35 AM
+-- Generation Time: May 27, 2025 at 08:47 PM
 -- Server version: 10.3.39-MariaDB-0+deb10u2
 -- PHP Version: 7.3.31-1~deb10u7
 
@@ -41,7 +41,8 @@ INSERT INTO `admin` (`UserID`, `AccessLevel`) VALUES
 (4, 'super'),
 (7, 'basic'),
 (10, 'moderator'),
-(21, 'moderator');
+(21, 'moderator'),
+(207, 'super');
 
 -- --------------------------------------------------------
 
@@ -278,7 +279,12 @@ INSERT INTO `customer` (`UserID`) VALUES
 (199),
 (200),
 (201),
-(202);
+(202),
+(203),
+(204),
+(205),
+(206),
+(207);
 
 -- --------------------------------------------------------
 
@@ -1448,7 +1454,9 @@ INSERT INTO `review` (`ReviewID`, `ProductID`, `UserID`, `Date`, `Rating`, `Comm
 (193, 472, NULL, '2025-03-17', 3, 'It\'s good but not great. Expected more features for the price.'),
 (194, 602, 162, '2025-03-20', 5, 'Outstanding quality and performance. Worth every penny.'),
 (195, 385, 47, '2025-03-24', 2, 'Underwhelming experience. Wouldn\'t buy again.'),
-(196, 553, 123, '2025-03-27', 4, 'Solid product that does everything it claims. Very reliable.');
+(196, 553, 123, '2025-03-27', 4, 'Solid product that does everything it claims. Very reliable.'),
+(197, 576, 206, '2025-05-27', 4, 'nice product'),
+(198, 401, 206, '2025-05-27', 4, 'nice\n');
 
 -- --------------------------------------------------------
 
@@ -1717,7 +1725,12 @@ INSERT INTO `user` (`UserID`, `UserName`, `Email`, `Password`, `Salt`, `Apikey`)
 (199, 'violet_C', 'violet.c199@example.com', 'hashed_password_199', 's@lt_199', 'APIKEY-199'),
 (200, 'viktorSky', 'viktor.sky200@example.com', 'hashed_password_200', 's@lt_200', 'APIKEY-200'),
 (201, 'TestUser', 'test@user.com', '81ba9bd5aa83048c196a37a218323de145f37398dec134273f2d235995e9975e3283b3276e8c6ccb7139b910ab537bf2cecb8f0146195d62da116e5fe1b1c7bf', 's@lt_201', 'APIKEY-201'),
-(202, 'Tester1', 'tester12345@tuks.co.za', '42edc73eeb29378586035726f6896dcd0bc91dadfccd9481e03ae8edd040e3eb2cb9c9307961afdb7160c5775ef260bba29cd7cf1c3844b03deab7a86ebfe150', 's@lt_202', 'APIKEY-202');
+(202, 'Tester1', 'tester12345@tuks.co.za', '42edc73eeb29378586035726f6896dcd0bc91dadfccd9481e03ae8edd040e3eb2cb9c9307961afdb7160c5775ef260bba29cd7cf1c3844b03deab7a86ebfe150', 's@lt_202', 'APIKEY-202'),
+(203, 'tester', 'tester@gmail.com', '85c095eef997c82ec15371cbe39effd423919dc725f870f9de99c48a132aa11d424b2c3ef36573d4493f1b712add96bd810badd243ef51b8f7effd8e551aabf9', '1df4856907f22a5c50eb576fb79e2c23', '1a0e087e87e3ab044c32f8993ea3f90f'),
+(204, 'abdlrhmanhabish03', 'abdoboss2003@gmail.com', 'e972d7c5d96d5ae830d89d8962607ece79a8cad17aaa4730994d4f9245e54ee5a88561d3f729c4b7f75cfd4020a0f29f46c1655f59c2c438f3d54f9758633e93', '711f2b397ae19a87d292f6ed26ee2269', '583c3a7fdedad3a66a7036193af7b417'),
+(205, 'haisoob07', 'haisoob07@gmail.com', 'f790850fc8967802dd646506c04068caa693a54e95904b790767df41ad294389219fa95d69b638277b0935367acb831028016d616fbd028945db37ad313473dc', 'd02e014f440dcf93024cf527bdfc5558', '920c57f40824b45bbda99e64f3c9bda7'),
+(206, 'customer1', 'customer1@gmail.com', '4e6971fb44a5820643575738d370bf905162d40d8f47d710c39be65425abc3e99db3577a038fcda776928403828765f312542a6a9a126b054553055ba56dd400', '9902736ee6ff474091b7f747adc067ba', '5e9ec78640b5511e04f37eb4b6a2ae50'),
+(207, 'admin1', 'admin1@gmail.com', 'd47d04261e918c816f2879d8beb619816f882c6cc437baa3361572f85f9158465462ada3d51cc91b073b5c6d5f5e8f5129b592a1831e0f396c99e97fe5f85077', '6974ca4bb778d7be7ae2a07304f1c685', '325793eb78b82d365209b18104569019');
 
 --
 -- Indexes for dumped tables
@@ -1812,7 +1825,7 @@ ALTER TABLE `listing`
 -- AUTO_INCREMENT for table `product`
 --
 ALTER TABLE `product`
-  MODIFY `ProductID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=654;
+  MODIFY `ProductID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=655;
 
 --
 -- AUTO_INCREMENT for table `retailer`
@@ -1824,7 +1837,7 @@ ALTER TABLE `retailer`
 -- AUTO_INCREMENT for table `review`
 --
 ALTER TABLE `review`
-  MODIFY `ReviewID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=197;
+  MODIFY `ReviewID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=199;
 
 --
 -- AUTO_INCREMENT for table `reviewresponse`
@@ -1836,7 +1849,7 @@ ALTER TABLE `reviewresponse`
 -- AUTO_INCREMENT for table `user`
 --
 ALTER TABLE `user`
-  MODIFY `UserID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=203;
+  MODIFY `UserID` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=208;
 
 --
 -- Constraints for dumped tables
