@@ -188,3 +188,24 @@ function getSavedUserData() {
     setupEventListeners();
   };
 })();
+
+document.addEventListener('DOMContentLoaded', () => {
+  const loginLink = document.getElementById('login-link');
+  const signupLink = document.getElementById('signup-link');
+  const isLoggedIn = localStorage.getItem('loggedIn') === 'true';
+
+  if (isLoggedIn) {
+      loginLink.style.display = 'none';
+      signupLink.innerHTML = 'Logout';
+      signupLink.href = '#';
+      signupLink.onclick = logout;
+  }
+});
+
+function logout() {
+  localStorage.removeItem('userApiKey');
+  localStorage.removeItem('userData');
+  localStorage.removeItem('isAdmin');
+  localStorage.removeItem('loggedIn');
+  window.location.href = './index.html';
+}

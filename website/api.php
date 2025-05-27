@@ -195,7 +195,7 @@ class API{
         //validating email using regex
         $emailRegex = "/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/"; // got from mailtrap.io
         if(!preg_match($emailRegex, $data["Email"]))
-            $this->sendErrorResponse("Invaild email address.", 400);
+            $this->sendErrorResponse("Invalid email address.", 400);
         //password validation
         $check1 = strlen($data["Password"]) < 8;
         $check2 = !preg_match("/[A-Z]/", $data["Password"]);
@@ -218,23 +218,21 @@ class API{
         $salt = bin2hex(random_bytes(16)); 
         $hashedPassword = hash("sha512", $data["Password"] . $salt);
         $Apikey = bin2hex(random_bytes(16));
-        $role = "Customer";
 
-        $mysql_statement = $this->connection->prepare("INSERT INTO user (UserName, Email, Password, Salt, Role, Apikey)
-        VALUES (?, ?, ?, ?, ?, ?)");
-        $mysql_statement->bind_param("ssssss", $data["UserName"], $data["Email"], $hashedPassword, $salt, $role, $Apikey);
+        $mysql_statement = $this->connection->prepare("INSERT INTO user (UserName, Email, Password, Salt, Apikey) VALUES (?, ?, ?, ?, ?)");
+        $mysql_statement->bind_param("sssss", $data["UserName"], $data["Email"], $hashedPassword, $salt, $Apikey);
         if($mysql_statement->execute()){
             $userId = $this->connection->prepare("SELECT UserID FROM user WHERE UserName = ?");
             $userId->bind_param("s", $data["UserName"]);
             $userId->execute();
             $result = $userId->get_result();
             $user = $result->fetch_assoc();
-            $mysql_statement2 = $this->connection->prepare("INSERT INTO customer (UserID, UserName) VALUES (?, ?)");
-            $mysql_statement2->bind_param("ss", $user["UserID"], $data["UserName"]);
+            $mysql_statement2 = $this->connection->prepare("INSERT INTO customer (UserID) VALUES (?)");
+            $mysql_statement2->bind_param("i", $user["UserID"]); // Use "i" for integer UserID
             if($mysql_statement2->execute())
-                $this->sendSuccessResponse(["Apikey"=>$Apikey]);
+                $this->sendSuccessResponse(["Apikey" => $Apikey]);
             else
-                $this->sendErrorResponse("Added to users but not to customers." ,400);
+                $this->sendErrorResponse("Added to users but not to customers.", 400);
         }
         else
             $this->sendErrorResponse("Registration failed.", 500);
