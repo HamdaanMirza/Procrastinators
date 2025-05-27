@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>CompareIt - View</title>
+    <link rel="stylesheet" href="css/view.css">
+    <meta charset="UTF-8">
+</head>
+
+<body>
+    <header>
+        <img src="img/logos.jpg" class="logo" alt="Varsity Tech">
+        <h1>CompareIt</h1>
+        <ul>
+            <li><a href="index.html">Products</a></li>
+            <li><a id="loginLink" href="login.html">login</a></li>
+            <li><a id="registerLink" href="signup.html">signup</a></li>
+        </ul>
+    </header>
+
+
+    <div class="content-box">
+        <div class="product-view">
+            </div>
+
+            <div class="product-details">
+                <div class="details-left">
+                    <h3>Product Information</h3>
+                    <p id="name"></p>
+                    <p id="price"><strong></strong></p>
+                    <p id="brand"><strong></strong></p>
+                    <p id="date"><strong></strong></p>
+                </div>
+
+                <div class="details-right">
+                    <h3>Reviews</h3>
+                    <div id="ratingBtn">
+                        <input type="radio" id="star5" name="rating" value="5">
+                        <label for="star5" title="5 stars"></label>
+
+                        <input type="radio" id="star4" name="rating" value="4">
+                        <label for="star4" title="4 stars"></label>
+
+                        <input type="radio" id="star3" name="rating" value="3">
+                        <label for="star3" title="3 stars"></label>
+
+                        <input type="radio" id="star2" name="rating" value="2">
+                        <label for="star2" title="2 stars"></label>
+
+                        <input type="radio" id="star1" name="rating" value="1">
+                        <label for="star1" title="1 star"></label>
+                    </div>
+                    <p id="rating"><strong></strong></p>
+                    <div class="comment-section">
+                        <h4>Leave a Comment</h4>
+                        <textarea id="comment" placeholder="Type your comment here..."></textarea><br>
+                        <button id="submit-review">Submit Review</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="description">
+                <h3>Product Description</h3>
+                <p id="description-text"></p>
+            </div>
+            <div>
+                <img src="" class="picture" id="pic" alt="">
+            </div>
+        </div>
+    </div>
+    <script src="js/view.js"></script>
+</body>
+
+</html>

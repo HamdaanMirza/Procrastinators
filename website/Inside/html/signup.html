@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>CompareIt - Products</title>
+    <link rel="stylesheet" href="css/signup.css">
+    <meta charset="UTF-8">
+</head>
+
+<body>
+    <header>
+        <img src="img/logos.jpg" class="logo" alt="Varsity Tech">
+        <h1>CompareIt</h1>
+        <ul>
+            <li><a href="index.html">Products</a></li>
+            <li><a href="login.html">Login</a></li>
+            <li><a href="signup.html">Register</a></li>
+        </ul>
+    </header>
+
+
+<div class="signup-container">
+    <h2>Create an Account</h2>
+    <form id="signupForm" method="post">
+        <div class="form-group">
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" required maxlength="100">
+        </div>
+        <div class="form-group">
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" required maxlength="100">
+        </div>
+        <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required minlength="8">
+        </div>
+        <button class="signup-btn" type="submit">Sign Up</button>
+    </form>
+
+    <div class="login-link">
+        Already have an account? <a href="login.html">Login here</a>.
+    </div>
+</div>
+<script src="js/signup.js"></script>
+</body>
+</html>

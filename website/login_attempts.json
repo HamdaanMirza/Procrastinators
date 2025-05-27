@@ -1,0 +1,11 @@
+{
+    "attempts": [
+        {
+            "ip": "::1",
+            "email": "abdoboss2003@gmail.com",
+            "count": 1,
+            "last_attempt": 1748353205,
+            "lockout_until": null
+        }
+    ]
+}
