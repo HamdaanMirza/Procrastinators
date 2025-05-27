@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-    <title>Procrastinators - Products</title>
+    <title>CompareIt - Products</title>
     <link rel="stylesheet" href="css/styles.css">
     <meta charset="UTF-8">
 </head>
@@ -10,11 +10,15 @@
 <body>
     <header>
         <img src="img/logos.jpg" class="logo" alt="Varsity Tech">
-        <h1>Procrastinators</h1>
-                <ul>
+        <div class="text">
+        <h1>CompareIt</h1>
+        <h3>Looking for the best deal? Browse a wide selection of home appliances and compare prices across top brands and retailers — all in one place.</h3>
+        </div>
+        <ul>
             <li><a href="index.html">Products</a></li>
-            <li><a href="login.html">Login</a></li>
-            <li><a href="signup.html">Register</a></li>
+            <li id="manageLink"><a href="manage.html">Management</a></li>
+            <li id="loginLink"><a href="login.html">Login</a></li>
+            <li id="registerLink"><a href="signup.html">Register</a></li>
         </ul>
     </header>
 
@@ -27,28 +31,21 @@
         <div class="filters">
             <label>Category:</label>
             <select>
+                <option value="0">ALL</option>
             </select>
-            <label>Price Range:</label>
+            <label>Brand:</label>
             <select>
-                <option>All</option>
-                <option>R0 - R500</option>
-                <option>R500 - R1000</option>
-                <option>R1000 - R10000</option>
-                <option>R10000+</option>
+                <option value="0">ALL</option>
             </select>
 
             <label>Sort By:</label>
             <select>
-                <option>Newest Arrivals</option>
-                <option>Price: Low to High</option>
-                <option>Price: High to Low</option>
+                <option value="Top Rated">Top Rated</option>
+                <option value="Most Reviewed">Most Reviewed</option>
+                <option value="Recently Listed">Recently Listed</option>
+                <option value="Most Listed">Most Listed</option>
             </select>
         </div>
-    </div>
-    <div class="admin-actions" style="display:none;">
-    <button id="btnAddProduct">Add Product</button>
-    <button id="btnManageCategories">Manage Categories</button>
-    <button id="btnManageRetailers">Manage Retailers</button>
     </div>
     <div class="products">
     </div>

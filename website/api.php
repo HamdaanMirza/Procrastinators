@@ -7,8 +7,8 @@ class API{
     private $connection;
     private $attempts_file = "login_attempts.json";
     private $max_attempts = 5;
-    private $time_window = 300; // 5 minutes in seconds
-    private $lockout_duration = 900; // 15 minutes in seconds
+    private $time_window = 300; 
+    private $lockout_duration = 900;
 
     private function __construct(){
         $this->connection = getDBConnection();
@@ -137,11 +137,17 @@ class API{
             case "GetTopRated":
                 $this->handleGetTopRated();
                 break;
+            case "GetMostReviewed":
+                $this->handleGetMostReviewed();
+                break;
+            case "GetRecentlyListed":
+                $this->handleGetRecentlyListed();
+                break;
+            case "GetMostListed":
+                $this->handleGetMostListed();
+                break;
             case "GetAverageRating":
                 $this->handleGetAverageRating($data);
-                break;
-            case "SortProducts":
-                $this->handleSortProducts($data);
                 break;
             case "FilterProducts":
                 $this->handleFilterProducts($data);
@@ -160,6 +166,9 @@ class API{
                 break;
             case "CheckReview":
                 $this->handleCheckReview($data);
+                break;
+            case "GetBrands":
+                $this->handleGetBrands();
                 break;
             default:
                 $this->sendErrorResponse("Endpoint not found", 404);
@@ -390,7 +399,7 @@ class API{
         $ip = $_SERVER["REMOTE_ADDR"];
         $this->checkRateLimit($ip, $data["Email"]);
 
-        $stmt = $this->connection->prepare("SELECT UserID, UserName, Email, Password, Salt, Role, Apikey FROM user WHERE Email = ?");
+        $stmt = $this->connection->prepare("SELECT UserID, UserName, Email, Password, Salt, Apikey FROM user WHERE Email = ?");
         $stmt->bind_param("s", $data["Email"]);
         $stmt->execute();
         $result = $stmt->get_result();
@@ -429,9 +438,20 @@ class API{
             }
         }
 
+        $isAdmin = false;
+        $stmt = $this->connection->prepare("SELECT AccessLevel FROM admin JOIN user ON admin.userID = user.userID WHERE admin.userID = ?");
+        $stmt->bind_param("i", $user["UserID"]);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        if($result->num_rows === 1){
+            $isAdmin = true;
+        }
+            
         $this->sendSuccessResponse([
             "message" => "Login successful",
-            "user" => $user
+            "user" => $user,
+            "isAdmin" => $isAdmin
         ]);
     }
 
@@ -859,12 +879,60 @@ class API{
 
     private function handleGetTopRated() {
         $sql = "
-            SELECT P.ProductID, P.ProductName, P.Brand, P.Description, P.ImageURL, AVG(R.Rating) AS AverageRating
+            SELECT P.*, AVG(R.Rating) AS AverageRating, C.CategoryID
             FROM product P
+            JOIN productcategory PC ON P.ProductID = PC.ProductID
+            JOIN category C ON PC.CategoryID = C.CategoryID
             JOIN review R ON P.ProductID = R.ProductID
             GROUP BY P.ProductID
             ORDER BY AverageRating DESC
-            LIMIT 15
+        ";
+        $stmt = $this->connection->prepare($sql);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $this->sendSuccessResponse($result->fetch_all(MYSQLI_ASSOC));
+    }
+
+    private function handleGetMostReviewed() {
+        $sql = "
+            SELECT P.*, AVG(R.Rating) AS AverageRating, COUNT(R.Rating) AS ReviewCount, PC.CategoryID
+            FROM product P
+            JOIN productcategory PC ON P.ProductID = PC.ProductID
+            JOIN review R ON P.ProductID = R.ProductID
+            GROUP BY P.ProductID
+            ORDER BY ReviewCount DESC
+        ";
+        $stmt = $this->connection->prepare($sql);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $this->sendSuccessResponse($result->fetch_all(MYSQLI_ASSOC));
+    }
+
+        private function handleGetRecentlyListed() {
+        $sql = "
+            SELECT P.*, AVG(R.Rating) AS AverageRating, MAX(L.Date) AS LatestListing, PC.CategoryID
+            FROM product P
+            JOIN productcategory PC ON P.ProductID = PC.ProductID
+            JOIN listing L ON P.ProductID = L.ProductID
+            JOIN review R ON P.ProductID = R.ProductID
+            GROUP BY P.ProductID
+            ORDER BY LatestListing DESC
+        ";
+        $stmt = $this->connection->prepare($sql);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $this->sendSuccessResponse($result->fetch_all(MYSQLI_ASSOC));
+    }
+
+        private function handleGetMostListed() {
+        $sql = "
+            SELECT P.*, AVG(R.Rating) AS AverageRating, COUNT(L.Price) AS NumListing, PC.CategoryID
+            FROM product P
+            JOIN productcategory PC ON P.ProductID = PC.ProductID
+            JOIN listing L ON P.ProductID = L.ProductID
+            JOIN review R ON P.ProductID = R.ProductID
+            GROUP BY P.ProductID
+            ORDER BY NumListing DESC
         ";
         $stmt = $this->connection->prepare($sql);
         $stmt->execute();
@@ -894,87 +962,6 @@ class API{
         $result = $stmt->get_result()->fetch_assoc();
         $avg = $result ? floatval($result["AverageRating"]) : null;
         $this->sendSuccessResponse($avg);
-    }
-
-    /*
-    {
-    "Type": "SortProducts",
-    "Criteria": "Price"
-    }
-    */
-
-    private function handleSortProducts($data){
-        if(!isset($data["Criteria"]))
-            $this->sendErrorResponse("Sorting criteria is required.", 400);
-        $criteria = $data["Criteria"];
-        $sortOptions = [
-            "DateListed" => "L.Date",
-            "AverageRating" => "AverageRating",
-            "Price" => "L.Price"
-        ];
-        if(!array_key_exists($criteria, $sortOptions))
-            $this->sendErrorResponse("Invalid sort criteria.", 400);
-
-        $col = $sortOptions[$criteria];
-        $sql = "
-            SELECT P.ProductID, P.ProductName, P.Brand, L.Date, L.Price, AVG(R.Rating) as AverageRating
-            FROM product P
-            JOIN listing L ON P.ProductID = L.ProductID
-            LEFT JOIN review R ON P.ProductID = R.ProductID
-            GROUP BY P.ProductID, L.Date, L.Price
-            ORDER BY $col DESC
-        ";
-        $stmt = $this->connection->prepare($sql);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $this->sendSuccessResponse($result->fetch_all(MYSQLI_ASSOC));
-    }
-
-    // this works
-    private function handleFilterProducts($data){
-        if(!isset($data["Criteria"]))
-            $this->sendErrorResponse("Filtering criteria is required.", 400);
-        if(!isset($data["Value"]))
-            $this->sendErrorResponse("Filtering value is required.", 400);
-        $criteria = $data["Criteria"];
-        $value = $data["Value"];
-        
-        $sql = "";
-        switch($criteria){
-            case "Retailer":
-                $sql = "
-                    SELECT DISTINCT P.ProductID, P.ProductName, P.Brand, P.Description, P.ImageURL
-                    FROM product P
-                    LEFT JOIN listing L ON P.ProductID = L.ProductID
-                    LEFT JOIN retailer R ON L.RetailerID = R.RetailerID
-                    WHERE R.RetailerName = ?
-                ";
-                break;
-            case "Brand":
-                $sql = "
-                    SELECT DISTINCT P.ProductID, P.ProductName, P.Brand, P.Description, P.ImageURL
-                    FROM product P
-                    WHERE P.Brand = ?
-                ";
-                break;
-            case "Category":
-                $sql = "
-                    SELECT DISTINCT P.ProductID, P.ProductName, P.Brand, P.Description, P.ImageURL
-                    FROM product P
-                    LEFT JOIN productcategory PC ON P.ProductID = PC.ProductID
-                    LEFT JOIN category C ON PC.CategoryID = C.CategoryID
-                    WHERE C.CategoryName = ?
-                ";
-                break;
-            default:
-                $this->sendErrorResponse("Invalid filter criteria.", 400);
-        }
-
-        $stmt = $this->connection->prepare($sql);
-        $stmt->bind_param("s", $value);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $this->sendSuccessResponse($result->fetch_all(MYSQLI_ASSOC));
     }
 
     /*
@@ -1094,6 +1081,18 @@ class API{
         }
         $this->sendSuccessResponse("Review found.");
     }
+
+    private function handleGetBrands(){
+        $sql = "SELECT DISTINCT Brand 
+                FROM product 
+                ORDER BY Brand"
+                ; 
+        $stmt = $this->connection->prepare($sql);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $this->sendSuccessResponse($result->fetch_all(MYSQLI_ASSOC));
+    }
+    
 
     private function sendSuccessResponse($data){
         echo json_encode([

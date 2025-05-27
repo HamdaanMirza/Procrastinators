@@ -1,6 +1,12 @@
 var product = null;
 
 document.addEventListener("DOMContentLoaded", function(){
+    if (localStorage.getItem("loggedIn") === "true") {
+        var loginLink = document.getElementById("loginLink");
+        var registerLink = document.getElementById("registerLink");
+        if (loginLink) loginLink.style.display = "none";
+        if (registerLink) registerLink.style.display = "none";
+    }
     var productID = localStorage.getItem("selectedProductId");
     if(!productID){
         alert("Product id not found. Redirecting to Products page.");

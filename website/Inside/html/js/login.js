@@ -16,6 +16,15 @@ function saveUserData(userData) {
     }
 }
 
+function saveIsAdmin(isAdmin) {
+    try {
+        localStorage.setItem('isAdmin', JSON.stringify(isAdmin));
+        console.log('isAdmin to localStorage:', userData);
+    } catch (error) {
+        console.error('Failed to save isAdmin:', error);
+    }
+}
+
 function getSavedApiKey() {
     try {
         return localStorage.getItem('userApiKey');
@@ -33,6 +42,16 @@ function getSavedUserData() {
     }
     catch (error) {
         console.error('Failed to retrieve user data from localStorage:', error);
+        return null;
+    }
+}
+
+function getIsAdmin() {
+    try {
+        return localStorage.getItem('isAdmin');
+    }
+    catch (error) {
+        console.error('Failed to retrieve isAdmin from localStorage:', error);
         return null;
     }
 }
@@ -88,6 +107,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         saveApiKey(userData.Apikey);
                     
                     saveUserData(userData);
+
+                    saveIsAdmin(result.data.isAdmin);
+
+                    localStorage.setItem("loggedIn", "true");
                     
                     alert('Login successful!');
                     

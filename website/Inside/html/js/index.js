@@ -1,7 +1,40 @@
 (function () {
   var products = [];
   var categories = [];
-  var isAdmin = false; 
+  var user = getSavedUserData();
+  var apiKey = getSavedApiKey();
+  var isAdmin = getIsAdmin();
+
+  function getIsAdmin() {
+    try {
+        return localStorage.getItem('accessLevel');
+    }
+    catch (error) {
+        console.error('Failed to retrieve accessLevel from localStorage:', error);
+        return null;
+    }
+  }
+
+function getSavedUserData() {
+    try{
+        const userData = localStorage.getItem('userData');
+        return userData ? JSON.parse(userData) : null;
+    }
+    catch (error) {
+        console.error('Failed to retrieve user data from localStorage:', error);
+        return null;
+    }
+  }
+
+  function getSavedApiKey() {
+    try {
+        return localStorage.getItem('userApiKey');
+    }
+    catch (error) {
+        console.error('Failed to retrieve API key from localStorage:', error);
+        return null;
+    }
+}
 
   function fetchData(type, payload, callback) {
     var xhr = new XMLHttpRequest();
@@ -9,15 +42,12 @@
     xhr.setRequestHeader("Content-Type", "application/json");
     xhr.onreadystatechange = function () {
       if (xhr.readyState === 4 && xhr.status === 200) {
-        try{
+        try {
           var response = JSON.parse(xhr.responseText);
           console.log(response.data);
-          if(response && response.status === "success")
-            callback(response);
-          else
-            console.log("Api error.");
-        }
-        catch(e){
+          if (response && response.status === "success") callback(response);
+          else console.log("Api error.");
+        } catch (e) {
           console.error("Error from api call: ", e, xhr.responseText);
         }
       }
@@ -36,39 +66,40 @@
       var card = document.createElement("div");
       card.className = "product";
       card.innerHTML =
-        '<img src="' + p.ImageURL + '" alt="' + p.ProductName + '" />' +
-        '<h3>' + p.ProductName + '</h3>' +
-        '<p>' + p.Brand + '</p>' +
-        '<p>' + p.Description + '</p>' +
-        '<p>R' + p.Price + '</p>' +
-        '<p>Rating: ' + (p.AverageRating || 'N/A') + '</p>' +
-        '<div class="bar" style="background:#ccc;width:' + (p.AverageRating || 0) * 20 + '%;height:10px;"></div>';
-      if (isAdmin) {
-        card.innerHTML +=
-          '<button onclick="editProduct(' + p.ProductID + ')">Edit</button>' +
-          '<button onclick="deleteProduct(' + p.ProductID + ')">Delete</button>';
-      }
-      card.addEventListener("click", function(product) {
-            return function(){
-                localStorage.setItem("selectedProductId", product.ProductID);
-                window.location.href = "view.html";
-            };
-        }(p));
+        '<img src="' +
+        p.ImageURL +
+        '" alt="' +
+        p.ProductName +
+        '" />' +
+        "<h3>" +
+        p.ProductName +
+        "</h3>" +
+        "<p>" +
+        p.Brand +
+        "</p>" +
+        "<p>Rating: " +
+        (p.AverageRating || "N/A") +
+        "</p>" +
+        '<div class="bar" style="background:#ccc;width:' +
+        (p.AverageRating || 0) * 20 +
+        '%;height:10px;"></div>';
+      card.addEventListener(
+        "click",
+        (function (product) {
+          return function () {
+            localStorage.setItem("selectedProductId", product.ProductID);
+            window.location.href = "view.html";
+          };
+        })(p)
+      );
       container.appendChild(card);
     }
   }
 
-  function loadTopRated() {
-    fetchData("GetTopRated", null, function (response) {
-      products = response.data;
-      renderProducts(products);
-    });
-  }
-
-  function loadCategories() {
+  function loadFilteringData() {
     fetchData("GetCategories", null, function (response) {
       categories = response.data;
-      var select = document.querySelector(".filters select");
+      var select = document.querySelectorAll(".filters select")[0];
       for (var i = 0; i < categories.length; i++) {
         var opt = document.createElement("option");
         opt.value = categories[i].CategoryID;
@@ -76,118 +107,84 @@
         select.appendChild(opt);
       }
     });
+    fetchData("GetBrands", null, function (response) {
+      brands = response.data;
+      var select = document.querySelectorAll(".filters select")[1];
+      for (var i = 0; i < brands.length; i++) {
+        var opt = document.createElement("option");
+        opt.value = brands[i].Brand;
+        opt.text = brands[i].Brand;
+        select.appendChild(opt);
+      }
+    });
   }
 
   function filterAndSort() {
     var category = document.querySelectorAll(".filters select")[0].value;
-    var priceRange = document.querySelectorAll(".filters select")[1].value;
-    var sortBy = document.querySelectorAll(".filters select")[2].value;
+    var brand = document.querySelectorAll(".filters select")[1].value;
+    var sort = document.querySelectorAll(".filters select")[2].value;
+    var searchQuery = document
+      .querySelector(".searchbar input")
+      .value.toLowerCase();
+
+    var endpoint = "GetTopRated";
+    if (sort === "Most Reviewed") endpoint = "GetMostReviewed";
+    else if (sort === "Recently Listed") endpoint = "GetRecentlyListed";
+    else if (sort === "Most Listed") endpoint = "GetMostListed";
+
+    fetchData(endpoint, null, function (response) {
+      products = response.data;
+      applyFilters();
+    });
+  }
+
+  function applyFilters() {
+    var category = document.querySelectorAll(".filters select")[0].value;
+    var brand = document.querySelectorAll(".filters select")[1].value;
+    var searchQuery = document
+      .querySelector(".searchbar input")
+      .value.toLowerCase();
 
     var filtered = products.filter(function (p) {
-      var matchesCategory = !category || p.CategoryID == category;
-      var price = parseFloat(p.Price);
-      var matchesPrice = true;
-      if (priceRange === "R0 - R500") matchesPrice = price <= 500;
-      else if (priceRange === "R500 - R1000") matchesPrice = price > 500 && price <= 1000;
-      else if (priceRange === "R1000 - R10000") matchesPrice = price > 1000 && price <= 10000;
-      else if (priceRange === "R10000+") matchesPrice = price > 10000;
-      return matchesCategory && matchesPrice;
+      var matchCategory = category === "0" || p.CategoryID == category;
+      var matchBrand = brand === "0" || p.Brand === brand;
+      var matchSearch =
+        p.ProductName && p.ProductName.toLowerCase().includes(searchQuery);
+      return matchCategory && matchBrand && matchSearch;
     });
-
-    filtered.sort(function (a, b) {
-      if (sortBy === "Price: Low to High") return a.Price - b.Price;
-      if (sortBy === "Price: High to Low") return b.Price - a.Price;
-      return 0;
-    });
-
     renderProducts(filtered);
   }
 
   function setupEventListeners() {
-    var products = document.querySelectorAll(".product-card");
+    document
+      .querySelector(".searchbar button")
+      .addEventListener("click", filterAndSort);
+    document
+      .querySelector(".searchbar input")
+      .addEventListener("keypress", function (e) {
+        if (e.key === "Enter") filterAndSort();
+      });
 
     var selects = document.querySelectorAll(".filters select");
     for (var i = 0; i < selects.length; i++) {
       selects[i].addEventListener("change", filterAndSort);
     }
-
-    if (isAdmin) {
-      var addProductBtn = document.createElement("button");
-      addProductBtn.innerText = "Add Product";
-      addProductBtn.onclick = addProduct;
-      document.body.appendChild(addProductBtn);
-
-      var addCategoryBtn = document.createElement("button");
-      addCategoryBtn.innerText = "Manage Categories";
-      addCategoryBtn.onclick = manageCategories;
-      document.body.appendChild(addCategoryBtn);
-
-      var addRetailerBtn = document.createElement("button");
-      addRetailerBtn.innerText = "Manage Retailers";
-      addRetailerBtn.onclick = manageRetailers;
-      document.body.appendChild(addRetailerBtn);
-    }
-  }
-
-  window.editProduct = function (id) {
-    var newName = prompt("Enter new product name:");
-    var newBrand = prompt("Enter new product Brand:");
-    var newDescription = prompt("Enter new product Description:");
-    var newImageURL = prompt("Enter new product ImageURL:");
-    var newCategories = prompt("Enter new product Categories:");
-    if (newName || newBrand || newDescription || newImageURL || newCategories) {
-      fetchData("EditProduct", {ProductID: id, ProductName: newName, Brand: newBrand, Description: newDescription, ImageURL: newImageURL, Categories: newCategories}, function () {
-        loadTopRated();
-      });
-    }
-  };
-
-  window.deleteProduct = function (id) {
-    if (confirm("Are you sure you want to delete this product?")) {
-      fetchData("DeleteProduct", { ProductID: id }, function () {
-        loadTopRated();
-      });
-    }
-  };
-
-  function addProduct() {
-    var name = prompt("Product name?");
-    var brand = prompt("Brand?");
-    var description = prompt("Description?");
-    var imageURL = prompt("Image URL?");
-    var categories = prompt("Categories?");
-    fetchData("AddProduct", {
-      ProductName: name,
-      Brand: brand,
-      Description: description,
-      ImageURL: imageURL,
-      Categories: categories
-    }, function () {
-      loadTopRated();
-    });
-  }
-
-  function manageCategories() {
-    var action = prompt("Enter action: add/edit/delete");
-    var name = prompt("Enter category name:");
-    var id = prompt("Enter category ID (if editing or deleting):");
-    fetchData("ManageCategory", { action: action, name: name, id: id }, function () {
-      loadCategories();
-    });
-  }
-
-  function manageRetailers() {
-    var action = prompt("Enter action: add/edit/delete");
-    var name = prompt("Enter retailer name:");
-    var id = prompt("Enter retailer ID (if editing or deleting):");
-    fetchData("ManageRetailer", { action: action, name: name, id: id }, function () {
-      alert("Retailer updated.");
-    });
   }
 
   window.onload = function () {
-    loadCategories();
-    loadTopRated();
+    if (localStorage.getItem("loggedIn") === "true") {
+      var manageLink = document.getElementById("manageLink");
+      var loginLink = document.getElementById("loginLink");
+      var registerLink = document.getElementById("registerLink");
+      //if(isAdmin !== true) {
+      //  if(manageLink) manageLink.style.display = "none";
+      //}
+      if (loginLink) loginLink.style.display = "none";
+      if (registerLink) registerLink.style.display = "none";
+      
+    }
+    loadFilteringData();
+    filterAndSort();
     setupEventListeners();
   };
 })();
