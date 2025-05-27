@@ -8,11 +8,29 @@ function saveApiKey(apiKey) {
     }
 }
 
+function saveUserData(userData) {
+    try {
+        localStorage.setItem('userData', JSON.stringify(userData));
+        console.log('User data saved to localStorage:', userData);
+    } catch (error) {
+        console.error('Failed to save user data to localStorage:', error);
+    }
+}
+
+function saveIsAdmin(isAdmin) {
+    try {
+        localStorage.setItem('isAdmin', JSON.stringify(isAdmin));
+        console.log('isAdmin saved to localStorage:', isAdmin);
+    } catch (error) {
+        console.error('Failed to save isAdmin to localStorage:', error);
+    }
+}
+
 function getSavedApiKey() {
-    try{
+    try {
         return localStorage.getItem('userApiKey');
     }
-    catch (error){
+    catch (error) {
         console.error('Failed to retrieve API key from localStorage:', error);
         return null;
     }
@@ -47,7 +65,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         Email: email,
                         Password: password
                     })
-
                 });
                 const responseText = await response.text();
                 console.log('Raw response:', responseText);
@@ -63,11 +80,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (result.status === 'success') {
                     const apiKey = result.data.Apikey;
-                    saveApiKey(apiKey);
+                    const userData = result.data.user;
+                    
+                    if (apiKey) {
+                        saveApiKey(apiKey);
+                    }
+                    if (userData) {
+                        saveUserData(userData);
+                    }
+                    saveIsAdmin(result.data.isAdmin);
+                    localStorage.setItem("loggedIn", "true");
+
                     alert('Registration successful!');
                     signupForm.reset();
                     window.location.href = '../html/index.html';
-                    
                 }
                 else {
                     alert('Error: ' + result.data);

@@ -77,16 +77,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 console.log('Sending login request to:', apiUrl);
+                const payload = {
+                    Type: 'Login',
+                    Email: email,
+                    Password: password
+                };
+                console.log('Payload being sent:', JSON.stringify(payload));
                 const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                        Type: 'Login',
-                        Email: email,
-                        Password: password
-                    })
+                    body: JSON.stringify(payload)
                 });
 
                 const responseText = await response.text();
